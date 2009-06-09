@@ -1,0 +1,116 @@
+crepo is a lightweight git repository management tool similar to Google's "repo" tool.
+crepo makes it very easy to manage projects that pull together sources from multiple remote repositories. In this respect, it is similar to submodules. However, it avoids the direct integration with the git index which makes the use of submodules somewhat error prone, and also enables automatic tracking of remote references without explicit commits to the containing repository.
+
+== crepo tutorial ==
+
+In this tutorial we'll make a crepo repository which tracks several Apache projects through their git mirrors hosted on github.
+
+Step 1: Make a container directory and initial manifest:
+
+todd@todd-laptop:/tmp$ mkdir my-crepo-project
+todd@todd-laptop:/tmp$ cd my-crepo-project/
+todd@todd-laptop:/tmp/my-crepo-project$ 
+
+Put the following content in a new file called manifest.json using your favorite text editor:
+
+{
+  "remotes":
+    {"origin": { "fetch": "git://github.com/apache/%s.git" }},
+  "projects":
+    {"hadoop": { "refspec": "trunk" },
+     "lucene": { "refspec": "trunk" }}
+}
+
+Then, from within the directory that contains the manifest, run "crepo.py init".
+
+While this command runs, let's look at the manifest section by section:
+
+The "remotes" section describes places we'll look to find git repositories. Every remote must have a %s in it to describe where to substitute the project name, for now. In this case we've defined that the origin is apache's mirror on github.
+
+Next we define the projects we want to track. For both of these projects, we define that we want to track the "trunk" reference from the remote repository. If we didn't specify this, it would try to track "master" which doesn't exist in the Apache mirrors.
+
+Step 2: Investigate what you've got
+
+You'll see that you now have two directories, one for each repository. If you cd into the directories and run "git branch" you'll see that crepo has checked out a local "trunk" branch to track the remote "trunk". From within my-crepo-project/ you can run "crepo status" to see the total state of all of your repositories.
+
+Step 3: Switch to a different remote ref
+
+Let's suppose we decide we'd rather track stable versions of these repositories. Let's edit the projects section of the manifest and change the refspecs to:
+
+  "projects":
+    {"hadoop": { "refspec": "tags/release-0.20.0"},
+     "lucene": { "refspec": "tags/lucene_2_4_1"}}
+
+Now run "crepo status" again. You'll see that it's noticed you've got the wrong stuff checked out:
+
+WARNING:root:Branch tags/release-0.20.0 does not exist in project hadoop. checking out.
+Branch tags/release-0.20.0 set up to track remote branch refs/remotes/origin/tags/release-0.20.0.
+WARNING:root:Branch tags/lucene_2_4_1 does not exist in project lucene. checking out.
+Branch tags/lucene_2_4_1 set up to track remote branch refs/remotes/origin/tags/lucene_2_4_1.
+Project lucene:
+  Checked out branch is trunk instead of tags/lucene_2_4_1
+  Your tracking branch and remote branches are up to date.
+
+Project hadoop:
+  Checked out branch is trunk instead of tags/release-0.20.0
+  Your tracking branch and remote branches are up to date.
+
+Run "crepo checkout" to switch to the correct branches. "crepo status" will now show that you are on the correct branches.
+
+By versioning your crepo manifest in git, you can easily switch all of your dependent repositories with a single command.
+
+Step 4: Make some local changes
+
+Let's say that you'd like to make a local change to Hadoop. We'll do something silly rather than make a real change.
+
+todd@todd-laptop:/tmp/my-crepo-project/hadoop$ echo 'MADE AWESOMER' >> CHANGES.txt 
+
+Before you commit the change, cd back to my-crepo-project and run "crepo status" again, or just "crepo check-dirty". It will alert you that you have a local change in the hadoop project. Now you can go ahead and commit the change:
+
+todd@todd-laptop:/tmp/my-crepo-project/hadoop$ git commit -a -m 'super change'
+Created commit 6514d2a: super change
+ 1 files changed, 1 insertions(+), 0 deletions(-)
+
+Now cd back up to my-crepo-project/ and run crepo status one more time! It will show you the helpful message:
+
+Project hadoop:
+  Your tracking branch tags/release-0.20.0 is 1 revisions ahead of
+  remote branch origin/tags/release-0.20.0.
+
+Obviously you can't push this change back to Apache's github, so instead you can hit the "fork" button to get your own copy of the Hadoop repository. Go do that now, and come back.
+
+Step 5: Add another remote
+
+Now we'll add another remote to your crepo manifest:
+
+{
+  "remotes":
+    {"origin": { "fetch": "git://github.com/apache/%s.git" },
+     "mine": { "fetch": "git@github.com:toddlipcon/%s.git" }},
+  "projects":
+    {"hadoop": { "refspec": "tags/release-0.20.0", "remotes": ["origin", "mine"]},
+     "lucene": { "refspec": "tags/lucene_2_4_1"}}
+}
+
+then run "crepo ensure-remotes". This will add your github repository for hadoop as a remote called "mine". Let's move our work over to that repository in a new branch:
+
+$ cd hadoop
+$ git checkout -b crepotest
+$ git push mine crepotest
+Counting objects: 5, done.
+Compressing objects: 100% (3/3), done.
+Writing objects: 100% (3/3), 309 bytes, done.
+Total 3 (delta 2), reused 0 (delta 0)
+To ssh://git@github.com/toddlipcon/hadoop.git
+ * [new branch]      crepotest -> crepotest
+
+But we still haven't told it that we want to check out this different branch. crepo status shows:
+Project hadoop:
+  Checked out branch is crepotest instead of tags/release-0.20.0
+  Your tracking branch tags/release-0.20.0 is 1 revisions ahead of
+  remote branch origin/tags/release-0.20.0.
+
+So let's update the hadoop project in the manifest to:
+    {"hadoop": { "refspec": "crepotest", "from-remote": "mine", "remotes": ["origin", "mine"]},
+
+now crepo status shows that we're all up to date!
