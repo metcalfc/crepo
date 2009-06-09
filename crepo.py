@@ -65,7 +65,7 @@ def ensure_remotes(args):
       if p.Wait() == 0:
         cur_url = p.stdout.strip()
         if cur_url != new_url:
-          repo.check_command(["config", "--set", "remote.%s.url" % remote_name, new_url])
+          repo.check_command(["config", "--replace-all", "remote.%s.url" % remote_name, new_url])
       else:
         repo.check_command(["remote", "add", remote_name, new_url])
 
