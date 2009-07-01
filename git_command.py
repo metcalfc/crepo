@@ -14,72 +14,23 @@
 # limitations under the License.
 
 import os
-import sys
 import subprocess
-import tempfile
-from error import GitError
 from trace import REPO_TRACE, IsTrace, Trace
 
 GIT = 'git'
 MIN_GIT_VERSION = (1, 5, 4)
 GIT_DIR = 'GIT_DIR'
 
+
 LAST_GITDIR = None
 LAST_CWD = None
 
-_ssh_proxy_path = None
-_ssh_sock_path = None
-
-def _ssh_sock(create=True):
-  global _ssh_sock_path
-  if _ssh_sock_path is None:
-    if not create:
-      return None
-    dir = '/tmp'
-    if not os.path.exists(dir):
-      dir = tempfile.gettempdir()
-    _ssh_sock_path = os.path.join(
-      tempfile.mkdtemp('', 'ssh-', dir),
-      'master-%r@%h:%p')
-  return _ssh_sock_path
-
-def _ssh_proxy():
-  global _ssh_proxy_path
-  if _ssh_proxy_path is None:
-    _ssh_proxy_path = os.path.join(
-      os.path.dirname(__file__),
-      'git_ssh')
-  return _ssh_proxy_path
-
-
-class _GitCall(object):
-  def version(self):
-    p = GitCommand(None, ['--version'], capture_stdout=True)
-    if p.Wait() == 0:
-      return p.stdout
-    return None
-
-  def __getattr__(self, name):
-    name = name.replace('_','-')
-    def fun(*cmdv):
-      command = [name]
-      command.extend(cmdv)
-      return GitCommand(None, command).Wait() == 0
-    return fun
-git = _GitCall()
-
 class GitCommand(object):
   def __init__(self,
-               project,
                cmdv,
-               bare = False,
-               provide_stdin = False,
                capture_stdout = False,
                capture_stderr = False,
-               disable_editor = False,
-               ssh_proxy = False,
-               cwd = None,
-               gitdir = None):
+               cwd = None):
     env = dict(os.environ)
 
     for e in [REPO_TRACE,
@@ -92,39 +43,11 @@ class GitCommand(object):
       if e in env:
         del env[e]
 
-    if disable_editor:
-      env['GIT_EDITOR'] = ':'
-    if ssh_proxy:
-      env['REPO_SSH_SOCK'] = _ssh_sock()
-      env['GIT_SSH'] = _ssh_proxy()
-
-    if project:
-      if not cwd:
-        cwd = project.worktree
-      if not gitdir:
-        gitdir = project.gitdir
-
     command = [GIT]
-    if bare:
-      if gitdir:
-        env[GIT_DIR] = gitdir
-      cwd = None
     command.extend(cmdv)
 
-    if provide_stdin:
-      stdin = subprocess.PIPE
-    else:
-      stdin = None
-
-    if capture_stdout:
-      stdout = subprocess.PIPE
-    else:
-      stdout = None
-
-    if capture_stderr:
-      stderr = subprocess.PIPE
-    else:
-      stderr = None
+    stdout = subprocess.PIPE if capture_stdout else None
+    stderr = subprocess.PIPE if capture_stderr else None
 
     if IsTrace():
       global LAST_CWD
@@ -146,8 +69,6 @@ class GitCommand(object):
 
       dbg += ': '
       dbg += ' '.join(command)
-      if stdin == subprocess.PIPE:
-        dbg += ' 0<|'
       if stdout == subprocess.PIPE:
         dbg += ' 1>|'
       if stderr == subprocess.PIPE:
@@ -158,11 +79,10 @@ class GitCommand(object):
       p = subprocess.Popen(command,
                            cwd = cwd,
                            env = env,
-                           stdin = stdin,
                            stdout = stdout,
                            stderr = stderr)
     except Exception, e:
-      raise GitError('%s: %s' % (command[1], e))
+      raise Exception('%s: %s' % (command[1], e))
 
     self.process = p
     self.stdin = p.stdin

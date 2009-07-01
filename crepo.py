@@ -10,8 +10,12 @@ import textwrap
 from git_command import GitCommand
 from git_repo import GitRepo
 
+LOADED_MANIFEST = None
 def load_manifest():
-  return manifest.load_manifest("manifest.json")
+  global LOADED_MANIFEST
+  if not LOADED_MANIFEST:
+    LOADED_MANIFEST = manifest.load_manifest("manifest.json")
+  return LOADED_MANIFEST
 
 def help(args):
   """Shows help"""
@@ -32,48 +36,62 @@ def init(args):
   man = load_manifest()
 
   for (name, project) in man.projects.iteritems():
-    logging.warn("Initializing project: %s" % name)
-    clone_remote = man.remotes[project.from_remote]
-    clone_url = clone_remote.fetch % name
-    p = GitCommand(None, ["clone", "-o", project.from_remote, "-n", clone_url, project.dir])
-    p.Wait()
-
-    repo = GitRepo(workdir_for_project(project))
-    if repo.command(["show-ref", "-q", "HEAD"]) != 0:
-      # There is no HEAD (maybe origin/master doesnt exist) so check out the tracking
-      # branch
-      repo.check_command(["checkout", "--track", "-b", project.tracking_branch,
-                        project.remote_refspec])
-    else:
-      repo.check_command(["checkout"])
-
+    init_project(name, project)
   ensure_remotes([])
   fetch([])
   checkout_branches([])
+
+
+
+def init_project(name, project):
+  man = load_manifest()
+  logging.warn("Initializing project: %s" % name)
+  clone_remote = man.remotes[project.from_remote]
+  clone_url = clone_remote.fetch % name
+  p = GitCommand(["clone", "-o", project.from_remote, "-n", clone_url, project.dir])
+  p.Wait()
+
+  repo = GitRepo(workdir_for_project(project))
+  if repo.command(["show-ref", "-q", "HEAD"]) != 0:
+    # There is no HEAD (maybe origin/master doesnt exist) so check out the tracking
+    # branch
+    repo.check_command(["checkout", "--track", "-b", project.tracking_branch,
+                      project.remote_refspec])
+  else:
+    repo.check_command(["checkout"])
+
 
 def ensure_remotes(args):
   """Ensure that remotes are set up"""
   man = load_manifest()
   for (proj_name, project) in man.projects.iteritems():
-    repo = GitRepo(workdir_for_project(project))
-    for remote_name in project.remotes:
-      remote = man.remotes[remote_name]
-      new_url = remote.fetch % proj_name
+    ensure_remotes_project(proj_name, project)
 
-      p = repo.command_process(["config", "--get", "remote.%s.url" % remote_name],
-                               capture_stdout=True)
-      if p.Wait() == 0:
-        cur_url = p.stdout.strip()
-        if cur_url != new_url:
-          repo.check_command(["config", "--replace-all", "remote.%s.url" % remote_name, new_url])
-      else:
-        repo.check_command(["remote", "add", remote_name, new_url])
+
+def ensure_remotes_project(proj_name, project):
+  man = load_manifest()
+  repo = GitRepo(workdir_for_project(project))
+  for remote_name in project.remotes:
+    remote = man.remotes[remote_name]
+    new_url = remote.fetch % proj_name
+
+    p = repo.command_process(["config", "--get", "remote.%s.url" % remote_name],
+                             capture_stdout=True)
+    if p.Wait() == 0:
+      cur_url = p.stdout.strip()
+      if cur_url != new_url:
+        repo.check_command(["config", "--replace-all", "remote.%s.url" % remote_name, new_url])
+    else:
+      repo.check_command(["remote", "add", remote_name, new_url])
 
 def ensure_tracking_branches(args):
   """Ensures that the tracking branches are set up"""
   man = load_manifest()
   for (name, project) in man.projects.iteritems():
-    repo = GitRepo(workdir_for_project(project))
+    wd = workdir_for_project(project)
+    if not os.path.exists(wd):
+      init_project(name, project)
+    repo = GitRepo(wd)
     branch_missing = repo.command(
       ["rev-parse", "--verify", "-q", project.refspec],
       capture_stdout=True)

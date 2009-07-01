@@ -30,8 +30,7 @@ class GitRepo(object):
       return p.stdout
 
   def command_process(self, cmdv, **kwargs):
-    p = GitCommand(project=None,
-                   cwd=self.path,
+    p = GitCommand(cwd=self.path,
                    cmdv=cmdv,
                    **kwargs)
     return p
