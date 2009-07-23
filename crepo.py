@@ -73,7 +73,7 @@ def ensure_remotes_project(proj_name, project):
   repo = GitRepo(workdir_for_project(project))
   for remote_name in project.remotes:
     remote = man.remotes[remote_name]
-    new_url = remote.fetch % proj_name
+    new_url = remote.fetch % { "name": proj_name }
 
     p = repo.command_process(["config", "--get", "remote.%s.url" % remote_name],
                              capture_stdout=True)
