@@ -3,12 +3,12 @@
   "default-revision": "master",
   
   "remotes":
-    {"origin": { "fetch": "ssh://git@git.sf.cloudera.com/%s.git" },
-     "apache": { "fetch": "ssh://git@git.sf.cloudera.com/apache-%s.git" }},
+    {"origin": { "fetch": "ssh://git@git.sf.cloudera.com/%(name)s.git" },
+     "apache": { "fetch": "ssh://git@git.sf.cloudera.com/apache-%(name)s.git" }},
  
   "projects":
     {"hadoop": {},
-   "pig": {"refspec": "rapleaf",
+   "pig": {"refspec": "0.3.0",
           "dir": "my-pig-dir",
            "remotes": ["origin", "apache"]}
             }
