@@ -34,7 +34,7 @@ def init(args):
   for (name, project) in man.projects.iteritems():
     logging.warn("Initializing project: %s" % name)
     clone_remote = man.remotes[project.from_remote]
-    clone_url = clone_remote.fetch % name
+    clone_url = clone_remote.fetch % {"name": name}
     p = GitCommand(None, ["clone", "-o", project.from_remote, "-n", clone_url, project.dir])
     p.Wait()
 
