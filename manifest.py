@@ -68,12 +68,14 @@ class Project(object):
                refspec="master", # the remote ref to pull
                from_remote="origin", # where to pull from
                dir=None,
+               remote_project_name = None
                ):
     self.name = name
     self.remotes = remotes if remotes else []
     self.dir = dir if dir else name
     self.from_remote = from_remote
     self.refspec = refspec
+    self.remote_project_name = remote_project_name if remote_project_name else name
 
   @staticmethod
   def from_dict(name, data, remotes, default_remote):
@@ -92,11 +94,13 @@ class Project(object):
                         name)
     
     assert from_remote in my_remote_names
+    remote_project_name = data.get('remote-project-name')
     return Project(name=name,
                    remotes=my_remotes,
                    refspec=data.get('refspec', 'master'),
                    dir=data.get('dir', name),
-                   from_remote=from_remote)
+                   from_remote=from_remote,
+                   remote_project_name=remote_project_name)
 
   @property
   def tracking_branch(self):

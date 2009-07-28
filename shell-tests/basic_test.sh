@@ -63,7 +63,7 @@ cat > manifest.json <<EOF
   "default-revision": "master",
   
   "remotes":
-    {"origin": { "fetch": "$TESTDIR/%s" }},
+    {"origin": { "fetch": "$TESTDIR/%(name)s" }},
  
   "projects":
     {"repo_a": {},

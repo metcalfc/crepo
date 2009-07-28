@@ -47,7 +47,7 @@ def init_project(name, project):
   man = load_manifest()
   logging.warn("Initializing project: %s" % name)
   clone_remote = man.remotes[project.from_remote]
-  clone_url = clone_remote.fetch % {"name": name}
+  clone_url = clone_remote.fetch % {"name": project.remote_project_name}
   p = GitCommand(["clone", "-o", project.from_remote, "-n", clone_url, project.dir])
   p.Wait()
 
@@ -73,7 +73,7 @@ def ensure_remotes_project(proj_name, project):
   repo = GitRepo(workdir_for_project(project))
   for remote_name in project.remotes:
     remote = man.remotes[remote_name]
-    new_url = remote.fetch % { "name": proj_name }
+    new_url = remote.fetch % { "name": project.remote_project_name }
 
     p = repo.command_process(["config", "--get", "remote.%s.url" % remote_name],
                              capture_stdout=True)
