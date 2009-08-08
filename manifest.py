@@ -18,7 +18,7 @@ class Manifest(object):
   def from_dict(data):
     remotes = dict([(name, Remote.from_dict(d)) for (name, d) in data.get('remotes', {}).iteritems()])
 
-    default_remote = data.get("default_remote", "origin")
+    default_remote = data.get("default-remote", "origin")
     assert default_remote in remotes
 
     projects = dict([
