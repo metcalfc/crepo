@@ -63,10 +63,9 @@ def ensure_remotes(args):
   """Ensure that remotes are set up"""
   man = load_manifest()
   for (proj_name, project) in man.projects.iteritems():
-    ensure_remotes_project(proj_name, project)
+    ensure_remotes_project(project)
 
-
-def ensure_remotes_project(proj_name, project):
+def ensure_remotes_project(project):
   man = load_manifest()
   repo = project.git_repo
   for remote_name in project.remotes:
@@ -86,19 +85,22 @@ def ensure_tracking_branches(args):
   """Ensures that the tracking branches are set up"""
   man = load_manifest()
   for (name, project) in man.projects.iteritems():
-    repo = project.git_repo
-    if not repo.is_cloned():
-      init_project(name, project)
+    ensure_tracking_branches_project(project)
 
-    branch_missing = repo.command(
-      ["rev-parse", "--verify", "-q", project.refspec],
-      capture_stdout=True)
-    
-    if branch_missing:
-      logging.warn("Branch %s does not exist in project %s. checking out." %
-                   (project.refspec, name))
-      repo.command(["branch", "--track",
-                    project.tracking_branch, project.remote_refspec])
+def ensure_tracking_branches_project(project):
+  repo = project.git_repo
+  if not repo.is_cloned():
+    init_project(name, project)
+
+  branch_missing = repo.command(
+    ["rev-parse", "--verify", "-q", project.refspec],
+    capture_stdout=True)
+
+  if branch_missing:
+    logging.warn("Branch %s does not exist in project %s. checking out." %
+                 (project.refspec, name))
+    repo.command(["branch", "--track",
+                  project.tracking_branch, project.remote_refspec])
 
 def check_dirty(args):
   """Prints output if any projects have dirty working dirs or indexes."""
