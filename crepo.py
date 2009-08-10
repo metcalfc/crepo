@@ -28,8 +28,6 @@ def help(args):
       sys.exit(1)
   usage()
 
-def workdir_for_project(p):
-  return p.dir # TODO(todd) add root to manifest
 
 def init(args):
   """Initializes repository"""
@@ -51,7 +49,7 @@ def init_project(name, project):
   p = GitCommand(["clone", "-o", project.from_remote, "-n", clone_url, project.dir])
   p.Wait()
 
-  repo = GitRepo(workdir_for_project(project))
+  repo = project.git_repo
   if repo.command(["show-ref", "-q", "HEAD"]) != 0:
     # There is no HEAD (maybe origin/master doesnt exist) so check out the tracking
     # branch
@@ -70,7 +68,7 @@ def ensure_remotes(args):
 
 def ensure_remotes_project(proj_name, project):
   man = load_manifest()
-  repo = GitRepo(workdir_for_project(project))
+  repo = project.git_repo
   for remote_name in project.remotes:
     remote = man.remotes[remote_name]
     new_url = remote.fetch % { "name": project.remote_project_name }
@@ -88,7 +86,7 @@ def ensure_tracking_branches(args):
   """Ensures that the tracking branches are set up"""
   man = load_manifest()
   for (name, project) in man.projects.iteritems():
-    wd = workdir_for_project(project)
+    wd = project.dir
     if not os.path.exists(wd):
       init_project(name, project)
     repo = GitRepo(wd)
@@ -107,7 +105,7 @@ def check_dirty(args):
   man = load_manifest()
   any_dirty = False
   for (name, project) in man.projects.iteritems():
-    repo = GitRepo(workdir_for_project(project))
+    repo = project.git_repo
     any_dirty = check_dirty_repo(repo) or any_dirty
   return any_dirty
 
@@ -134,7 +132,7 @@ def checkout_branches(args):
   man = load_manifest()
   for (name, project) in man.projects.iteritems():
     print >>sys.stderr, "Checking out tracking branch in project: %s" % name
-    repo = GitRepo(workdir_for_project(project))
+    repo = project.git_repo
     # Check that sucker out
     repo.check_command(["checkout", project.tracking_branch])
 
@@ -144,7 +142,7 @@ def hard_reset_branches(args):
   man = load_manifest()
   for (name, project) in man.projects.iteritems():
     print >>sys.stderr, "Hard resetting tracking branch in project: %s" % name
-    repo = GitRepo(workdir_for_project(project))
+    repo = project.git_repo
     repo.check_command(["reset", "--hard", project.remote_refspec])
   
 
@@ -163,7 +161,7 @@ def do_all_projects(args):
   towait = []
 
   for (name, project) in man.projects.iteritems():
-    repo = GitRepo(workdir_for_project(project))
+    repo = project.git_repo
     print >>sys.stderr, "In project: ", name, " running ", " ".join(args)
     p = repo.command_process(args)
     if not parallel:
@@ -189,7 +187,7 @@ def do_all_projects_remotes(args):
   towait = []
 
   for (name, project) in man.projects.iteritems():
-    repo = GitRepo(workdir_for_project(project))
+    repo = project.git_repo
     for remote_name in project.remotes.keys():
       cmd = args + [remote_name]
       print >>sys.stderr, "In project: ", name, " running ", " ".join(cmd)
@@ -231,7 +229,7 @@ def _format_tracking(local_branch, remote_branch,
             (local_branch, remote_branch, left, right))
 
 def project_status(project, indent=0):
-  repo = GitRepo(workdir_for_project(project))
+  repo = project.git_repo
   repo_status(repo, project.tracking_branch, project.remote_refspec, indent=indent)
 
 def repo_status(repo, tracking_branch, remote_ref, indent=0):
@@ -271,7 +269,7 @@ def status(args):
 
     print "Project %s:" % name
     project_status(project, indent=2)
-    check_dirty_repo(GitRepo(workdir_for_project(project)),
+    check_dirty_repo(project.git_repo,
                      indent=2)
 
   man_repo = get_manifest_repo()
@@ -314,7 +312,7 @@ def dump_refs(args):
     first = False
     print "Project %s:" % name
 
-    repo = GitRepo(workdir_for_project(project))
+    repo = project.git_repo
     print "  HEAD: %s" % repo.rev_parse("HEAD")
     print "  Symbolic: %s" % repo.current_branch()
     project_status(project, indent=2)

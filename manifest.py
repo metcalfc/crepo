@@ -3,6 +3,9 @@
 import simplejson
 import os
 
+from git_repo import GitRepo
+
+
 class Manifest(object):
   def __init__(self,
                base_dir=None,
@@ -79,6 +82,7 @@ class Remote(object):
 class Project(object):
   def __init__(self,
                name=None,
+               manifest=None,
                remotes=None,
                refspec="master", # the remote ref to pull
                from_remote="origin", # where to pull from
@@ -86,8 +90,9 @@ class Project(object):
                remote_project_name = None
                ):
     self.name = name
+    self.manifest = manifest
     self.remotes = remotes if remotes else []
-    self.dir = dir if dir else name
+    self._dir = dir if dir else name
     self.from_remote = from_remote
     self.refspec = refspec
     self.remote_project_name = remote_project_name if remote_project_name else name
@@ -111,6 +116,7 @@ class Project(object):
     assert from_remote in my_remote_names
     remote_project_name = data.get('remote-project-name')
     return Project(name=name,
+                   manifest=manifest,
                    remotes=my_remotes,
                    refspec=data.get('refspec', 'master'),
                    dir=data.get('dir', name),
@@ -135,6 +141,13 @@ class Project(object):
             'from-remote': self.from_remote,
             'dir': self.dir}
 
+  @property
+  def dir(self):
+    return os.path.join(self.manifest.base_dir, self._dir)
+
+  @property
+  def git_repo(self):
+    return GitRepo(self.dir)
 
 def load_manifest(path):
   return Manifest.from_json_file(path)
