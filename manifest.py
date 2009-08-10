@@ -133,6 +133,11 @@ class Project(object):
   def remote_refspec(self):
     return "%s/%s" % (self.from_remote, self.refspec)
 
+  @property
+  def tracking_status(self):
+    return self.git_repo.tracking_status(
+      self.tracking_branch, self.remote_refspec)
+
   def to_json(self):
     return simplejson.dumps(self.data_for_json())
 
@@ -151,12 +156,16 @@ class Project(object):
   def git_repo(self):
     return GitRepo(self.dir)
 
+  def is_cloned(self):
+    return self.git_repo.is_cloned()
 
   ############################################################
   # Actual actions to be taken on a project
   ############################################################
 
   def clone(self):
+    if self.is_cloned():
+      return
     logging.warn("Initializing project: %s" % self.name)
     clone_remote = self.manifest.remotes[self.from_remote]
     clone_url = clone_remote.fetch % {"name": self.remote_project_name}
@@ -190,7 +199,7 @@ class Project(object):
 
   def ensure_tracking_branch(self):
     """Ensure that the tracking branch exists."""
-    if not self.git_repo.is_cloned():
+    if not self.is_cloned():
       self.init()
 
     branch_missing = self.git_repo.command(

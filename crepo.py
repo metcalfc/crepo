@@ -30,15 +30,53 @@ def help(args):
 
 
 def init(args):
-  """Initializes repository"""
+  """Initializes repository - DEPRECATED - use sync"""
+  print >>sys.stderr, "crepo init is deprecated - use crepo sync"
+  sync(args)
+
+def sync(args):
+  """Synchronize your local repository with the manifest and the real world.
+  This includes:
+    - ensures that all projects are cloned
+    - ensures that they have the correct remotes set up
+    - fetches from the remotes
+    - checks out the correct tracking branches
+    - if the local branch is not dirty and it is a fast-forward update, merges
+      the remote branch's changes in
+
+  Process exit code will be 0 if all projects updated correctly.
+  """
+  
   man = load_manifest()
 
   for (name, project) in man.projects.iteritems():
-    project.clone()
+    if not project.is_cloned():
+      project.clone()
   ensure_remotes([])
   fetch([])
   checkout_branches([])
 
+  retcode = 0
+  
+  for project in man.projects.itervalues():
+    repo = project.git_repo
+    if repo.is_workdir_dirty() or repo.is_index_dirty():
+      print >>sys.stderr, "Not syncing project %s - it is dirty." % project.name
+      retcode = 1
+      continue
+    (left, right) = project.tracking_status
+    if left > 0:
+      print >>sys.stderr, \
+            ("Not syncing project %s - you have %d unpushed changes." % 
+             (project.name, left))
+      retcode = 1
+      continue
+    elif right > 0:
+      repo.check_command(["merge", project.remote_refspec])
+    else:
+      print >>sys.stderr, "Project %s needs no update" % project.name
+
+  return retcode
 
 def ensure_remotes(args):
   """Ensure that remotes are set up"""
@@ -281,6 +319,7 @@ def dump_refs(args):
 COMMANDS = {
   'help': help,
   'init': init,
+  'sync': sync,
   'checkout': checkout_branches,
   'hard-reset': hard_reset_branches,
   'do-all': do_all_projects,
