@@ -35,6 +35,8 @@ class GitRepo(object):
                    **kwargs)
     return p
 
+  def is_cloned(self):
+    return os.path.exists(os.path.join(self.path, ".git"))
 
   def is_dirty(self):
     return self.is_workdir_dirty() or self.is_index_dirty()

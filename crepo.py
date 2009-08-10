@@ -86,10 +86,10 @@ def ensure_tracking_branches(args):
   """Ensures that the tracking branches are set up"""
   man = load_manifest()
   for (name, project) in man.projects.iteritems():
-    wd = project.dir
-    if not os.path.exists(wd):
+    repo = project.git_repo
+    if not repo.is_cloned():
       init_project(name, project)
-    repo = GitRepo(wd)
+
     branch_missing = repo.command(
       ["rev-parse", "--verify", "-q", project.refspec],
       capture_stdout=True)
