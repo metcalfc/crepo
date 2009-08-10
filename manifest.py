@@ -21,15 +21,22 @@ class Manifest(object):
     default_remote = data.get("default-remote", "origin")
     assert default_remote in remotes
 
-    projects = dict([
-      (name, Project.from_dict(name=name, data=d, remotes=remotes, default_remote=default_remote))
-      for (name, d) in data.get('projects', {}).iteritems()])
-    
-    return Manifest(
+    man = Manifest(
       default_refspec=data.get("default-revision", "master"),
       default_remote=default_remote,
-      projects=projects,
       remotes=remotes)
+    
+    for (name, d) in data.get('projects', {}).iteritems():
+      man.add_project(Project.from_dict(
+        manifest=man,
+        name=name,
+        data=d))
+    return man
+
+  def add_project(self, project):
+    if project.name in self.projects:
+      raise Exception("Project %s already in manifest" % project.name)
+    self.projects[project.name] = project
 
   def to_json(self):
     return simplejson.dumps(self.data_for_json(), indent=2)
@@ -78,17 +85,17 @@ class Project(object):
     self.remote_project_name = remote_project_name if remote_project_name else name
 
   @staticmethod
-  def from_dict(name, data, remotes, default_remote):
-    my_remote_names = data.get('remotes', [default_remote])
-    my_remotes = dict([ (r, remotes[r])
+  def from_dict(manifest, name, data):
+    my_remote_names = data.get('remotes', [manifest.default_remote])
+    my_remotes = dict([ (r, manifest.remotes[r])
                         for r in my_remote_names])
 
     from_remote = data.get('from-remote')
     if not from_remote:
       if len(my_remote_names) == 1:
         from_remote = my_remote_names[0]
-      elif default_remote in my_remote_names:
-        from_remote = default_remote
+      elif manifest.default_remote in my_remote_names:
+        from_remote = manifest.default_remote
       else:
         raise Exception("no from-remote listed for project %s, and more than one remote" %
                         name)
