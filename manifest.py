@@ -1,8 +1,10 @@
 #!/usr/bin/env python2.5
 # (c) Copyright 2009 Cloudera, Inc.
-import simplejson
+import logging
 import os
+import simplejson
 
+from git_command import GitCommand
 from git_repo import GitRepo
 
 
@@ -148,6 +150,64 @@ class Project(object):
   @property
   def git_repo(self):
     return GitRepo(self.dir)
+
+
+  ############################################################
+  # Actual actions to be taken on a project
+  ############################################################
+
+  def clone(self):
+    logging.warn("Initializing project: %s" % self.name)
+    clone_remote = self.manifest.remotes[self.from_remote]
+    clone_url = clone_remote.fetch % {"name": self.remote_project_name}
+    p = GitCommand(["clone", "-o", self.from_remote, "-n", clone_url, self.dir])
+    p.Wait()
+
+    repo = self.git_repo
+    if repo.command(["show-ref", "-q", "HEAD"]) != 0:
+      # There is no HEAD (maybe origin/master doesnt exist) so check out the tracking
+      # branch
+      repo.check_command(["checkout", "--track", "-b", self.tracking_branch,
+                        self.remote_refspec])
+    else:
+      repo.check_command(["checkout"])
+    
+
+  def ensure_remotes(self):
+    repo = self.git_repo
+    for remote_name in self.remotes:
+      remote = self.manifest.remotes[remote_name]
+      new_url = remote.fetch % { "name": self.remote_project_name }
+
+      p = repo.command_process(["config", "--get", "remote.%s.url" % remote_name],
+                               capture_stdout=True)
+      if p.Wait() == 0:
+        cur_url = p.stdout.strip()
+        if cur_url != new_url:
+          repo.check_command(["config", "--replace-all", "remote.%s.url" % remote_name, new_url])
+      else:
+        repo.check_command(["remote", "add", remote_name, new_url])
+
+  def ensure_tracking_branch(self):
+    """Ensure that the tracking branch exists."""
+    if not self.git_repo.is_cloned():
+      self.init()
+
+    branch_missing = self.git_repo.command(
+      ["rev-parse", "--verify", "-q", self.refspec],
+      capture_stdout=True)
+
+    if branch_missing:
+      logging.warn("Branch %s does not exist in project %s. checking out." %
+                   (self.refspec, name))
+      self.git_repo.command(["branch", "--track",
+                    self.tracking_branch, self.remote_refspec])
+    
+
+  def checkout_tracking_branch(self):
+    """Check out the correct tracking branch."""
+    self.ensure_tracking_branch()
+    self.git_repo.check_command(["checkout", self.tracking_branch])
 
 def load_manifest(path):
   return Manifest.from_json_file(path)

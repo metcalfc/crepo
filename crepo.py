@@ -34,73 +34,24 @@ def init(args):
   man = load_manifest()
 
   for (name, project) in man.projects.iteritems():
-    init_project(name, project)
+    project.clone()
   ensure_remotes([])
   fetch([])
   checkout_branches([])
-
-
-
-def init_project(name, project):
-  man = load_manifest()
-  logging.warn("Initializing project: %s" % name)
-  clone_remote = man.remotes[project.from_remote]
-  clone_url = clone_remote.fetch % {"name": project.remote_project_name}
-  p = GitCommand(["clone", "-o", project.from_remote, "-n", clone_url, project.dir])
-  p.Wait()
-
-  repo = project.git_repo
-  if repo.command(["show-ref", "-q", "HEAD"]) != 0:
-    # There is no HEAD (maybe origin/master doesnt exist) so check out the tracking
-    # branch
-    repo.check_command(["checkout", "--track", "-b", project.tracking_branch,
-                      project.remote_refspec])
-  else:
-    repo.check_command(["checkout"])
 
 
 def ensure_remotes(args):
   """Ensure that remotes are set up"""
   man = load_manifest()
   for (proj_name, project) in man.projects.iteritems():
-    ensure_remotes_project(project)
+    project.ensure_remotes()
 
-def ensure_remotes_project(project):
-  man = load_manifest()
-  repo = project.git_repo
-  for remote_name in project.remotes:
-    remote = man.remotes[remote_name]
-    new_url = remote.fetch % { "name": project.remote_project_name }
-
-    p = repo.command_process(["config", "--get", "remote.%s.url" % remote_name],
-                             capture_stdout=True)
-    if p.Wait() == 0:
-      cur_url = p.stdout.strip()
-      if cur_url != new_url:
-        repo.check_command(["config", "--replace-all", "remote.%s.url" % remote_name, new_url])
-    else:
-      repo.check_command(["remote", "add", remote_name, new_url])
 
 def ensure_tracking_branches(args):
   """Ensures that the tracking branches are set up"""
   man = load_manifest()
   for (name, project) in man.projects.iteritems():
-    ensure_tracking_branches_project(project)
-
-def ensure_tracking_branches_project(project):
-  repo = project.git_repo
-  if not repo.is_cloned():
-    init_project(name, project)
-
-  branch_missing = repo.command(
-    ["rev-parse", "--verify", "-q", project.refspec],
-    capture_stdout=True)
-
-  if branch_missing:
-    logging.warn("Branch %s does not exist in project %s. checking out." %
-                 (project.refspec, name))
-    repo.command(["branch", "--track",
-                  project.tracking_branch, project.remote_refspec])
+    project.ensure_tracking_branch()
 
 def check_dirty(args):
   """Prints output if any projects have dirty working dirs or indexes."""
@@ -127,16 +78,13 @@ def check_dirty_repo(repo, indent=0):
 def checkout_branches(args):
   """Checks out the tracking branches listed in the manifest."""
 
-  ensure_tracking_branches([])
   if check_dirty([]) and '-f' not in args:
     raise Exception("Cannot checkout new branches with dirty projects.")
   
   man = load_manifest()
   for (name, project) in man.projects.iteritems():
     print >>sys.stderr, "Checking out tracking branch in project: %s" % name
-    repo = project.git_repo
-    # Check that sucker out
-    repo.check_command(["checkout", project.tracking_branch])
+    project.checkout_tracking_branch()
 
 def hard_reset_branches(args):
   """Hard-resets your tracking branches to match the remotes."""
