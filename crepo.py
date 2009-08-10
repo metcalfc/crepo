@@ -92,8 +92,7 @@ def hard_reset_branches(args):
   man = load_manifest()
   for (name, project) in man.projects.iteritems():
     print >>sys.stderr, "Hard resetting tracking branch in project: %s" % name
-    repo = project.git_repo
-    repo.check_command(["reset", "--hard", project.remote_refspec])
+    project.git_repo.check_command(["reset", "--hard", project.remote_refspec])
   
 
 def do_all_projects(args):
@@ -111,9 +110,8 @@ def do_all_projects(args):
   towait = []
 
   for (name, project) in man.projects.iteritems():
-    repo = project.git_repo
     print >>sys.stderr, "In project: ", name, " running ", " ".join(args)
-    p = repo.command_process(args)
+    p = project.git_repo.command_process(args)
     if not parallel:
       p.Wait()
       print >>sys.stderr
@@ -137,11 +135,10 @@ def do_all_projects_remotes(args):
   towait = []
 
   for (name, project) in man.projects.iteritems():
-    repo = project.git_repo
     for remote_name in project.remotes.keys():
       cmd = args + [remote_name]
       print >>sys.stderr, "In project: ", name, " running ", " ".join(cmd)
-      p = repo.command_process(cmd)
+      p = project.git_repo.command_process(cmd)
       if not parallel:
         p.Wait()
         print >>sys.stderr
