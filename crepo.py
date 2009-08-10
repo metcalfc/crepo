@@ -72,7 +72,7 @@ def sync(args):
       retcode = 1
       continue
     elif right > 0:
-      repo.check_command(["merge", project.remote_refspec])
+      repo.check_command(["merge", project.remote_ref])
     else:
       print >>sys.stderr, "Project %s needs no update" % project.name
 
@@ -130,7 +130,7 @@ def hard_reset_branches(args):
   man = load_manifest()
   for (name, project) in man.projects.iteritems():
     print >>sys.stderr, "Hard resetting tracking branch in project: %s" % name
-    project.git_repo.check_command(["reset", "--hard", project.remote_refspec])
+    project.git_repo.check_command(["reset", "--hard", project.remote_ref])
   
 
 def do_all_projects(args):
@@ -174,7 +174,7 @@ def do_all_projects_remotes(args):
 
   for (name, project) in man.projects.iteritems():
     for remote_name in project.remotes.keys():
-      cmd = args + [remote_name]
+      cmd = [arg % {"remote": remote_name} for arg in args]
       print >>sys.stderr, "In project: ", name, " running ", " ".join(cmd)
       p = project.git_repo.command_process(cmd)
       if not parallel:
@@ -188,11 +188,13 @@ def do_all_projects_remotes(args):
 
 def fetch(args):
   """Run git-fetch in every project"""
-  do_all_projects_remotes(args + ["fetch"])
+  do_all_projects_remotes(
+    args + ["fetch", "-t", "%(remote)s",
+            "refs/heads/*:refs/remotes/%(remote)s/*"])
 
 def pull(args):
   """Run git-pull in every project"""
-  do_all_projects(args + ["pull"])
+  do_all_projects(args + ["pull", "-t"])
 
 def _format_tracking(local_branch, remote_branch,
                      left, right):
@@ -215,7 +217,7 @@ def _format_tracking(local_branch, remote_branch,
 
 def project_status(project, indent=0):
   repo = project.git_repo
-  repo_status(repo, project.tracking_branch, project.remote_refspec, indent=indent)
+  repo_status(repo, project.tracking_branch, project.remote_ref, indent=indent)
 
 def repo_status(repo, tracking_branch, remote_ref, indent=0):
   # Make sure the right branch is checked out

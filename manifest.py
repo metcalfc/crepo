@@ -13,12 +13,12 @@ class Manifest(object):
                base_dir=None,
                remotes=[],
                projects={},
-               default_refspec="master",
+               default_ref="master",
                default_remote="origin"):
     self.base_dir = base_dir or os.getcwd()
     self.remotes = remotes
     self.projects = projects
-    self.default_refspec = default_refspec
+    self.default_ref = default_ref
     self.default_remote = default_remote
 
   @staticmethod
@@ -30,7 +30,7 @@ class Manifest(object):
 
     man = Manifest(
       base_dir=base_dir,
-      default_refspec=data.get("default-revision", "master"),
+      default_ref=data.get("default-revision", "master"),
       default_remote=default_remote,
       remotes=remotes)
     
@@ -56,7 +56,7 @@ class Manifest(object):
 
   def data_for_json(self):
     return {
-      "default-revision": self.default_refspec,
+      "default-revision": self.default_ref,
       "default-remote": self.default_remote,
       "remotes": dict( [(name, remote.data_for_json()) for (name, remote) in self.remotes.iteritems()] ),
       "projects": dict( [(name, project.data_for_json()) for (name, project) in self.projects.iteritems()] ),
@@ -86,7 +86,8 @@ class Project(object):
                name=None,
                manifest=None,
                remotes=None,
-               refspec="master", # the remote ref to pull
+               tracking_branch=None, # the name of the tracking branch
+               remote_ref="master", # what ref to track
                from_remote="origin", # where to pull from
                dir=None,
                remote_project_name = None
@@ -96,7 +97,8 @@ class Project(object):
     self.remotes = remotes if remotes else []
     self._dir = dir if dir else name
     self.from_remote = from_remote
-    self.refspec = refspec
+    self.remote_ref = remote_ref
+    self.tracking_branch = tracking_branch
     self.remote_project_name = remote_project_name if remote_project_name else name
 
   @staticmethod
@@ -117,26 +119,49 @@ class Project(object):
     
     assert from_remote in my_remote_names
     remote_project_name = data.get('remote-project-name')
+
+    track_tag = data.get('track-tag')
+    track_branch = data.get('track-branch')
+
+    # This is old and deprecated
+    ref = data.get('refspec')
+
+    if track_tag and track_branch:
+      raise Exception("Cannot specify both track-branch and track-tag for project %s" %
+                      name)
+
+    if not track_tag and not track_branch:
+      if ref:
+        logging.warn("'ref' is deprecated - use either track-branch or track-tag " +
+                     "for project %s" % name)
+        track_branch = ref
+      else:
+        track_branch = "master"
+    
+    if track_tag:
+      remote_ref = "refs/tags/" + track_tag
+      tracking_branch = track_tag
+    elif track_branch:
+      remote_ref = "%s/%s" % (from_remote, track_branch)
+      tracking_branch = track_branch
+    else:
+      assert False and "Cannot get here!"
+      
+
     return Project(name=name,
                    manifest=manifest,
                    remotes=my_remotes,
-                   refspec=data.get('refspec', 'master'),
+                   remote_ref=remote_ref,
+                   tracking_branch=tracking_branch,
                    dir=data.get('dir', name),
                    from_remote=from_remote,
                    remote_project_name=remote_project_name)
 
-  @property
-  def tracking_branch(self):
-    return self.refspec
-
-  @property
-  def remote_refspec(self):
-    return "%s/%s" % (self.from_remote, self.refspec)
 
   @property
   def tracking_status(self):
     return self.git_repo.tracking_status(
-      self.tracking_branch, self.remote_refspec)
+      self.tracking_branch, self.remote_ref)
 
   def to_json(self):
     return simplejson.dumps(self.data_for_json())
@@ -144,7 +169,7 @@ class Project(object):
   def data_for_json(self):
     return {'name': self.name,
             'remotes': self.remotes.keys(),
-            'refspec': self.refspec,
+            'ref': self.ref,
             'from-remote': self.from_remote,
             'dir': self.dir}
 
@@ -177,7 +202,7 @@ class Project(object):
       # There is no HEAD (maybe origin/master doesnt exist) so check out the tracking
       # branch
       repo.check_command(["checkout", "--track", "-b", self.tracking_branch,
-                        self.remote_refspec])
+                        self.remote_ref])
     else:
       repo.check_command(["checkout"])
     
@@ -203,14 +228,14 @@ class Project(object):
       self.init()
 
     branch_missing = self.git_repo.command(
-      ["rev-parse", "--verify", "-q", self.refspec],
+      ["rev-parse", "--verify", "-q", "refs/heads/%s" % self.tracking_branch],
       capture_stdout=True)
 
     if branch_missing:
       logging.warn("Branch %s does not exist in project %s. checking out." %
-                   (self.refspec, name))
+                   (self.tracking_branch, self.name))
       self.git_repo.command(["branch", "--track",
-                    self.tracking_branch, self.remote_refspec])
+                    self.tracking_branch, self.remote_ref])
     
 
   def checkout_tracking_branch(self):
