@@ -5,23 +5,26 @@ import os
 
 class Manifest(object):
   def __init__(self,
+               base_dir=None,
                remotes=[],
                projects={},
                default_refspec="master",
                default_remote="origin"):
+    self.base_dir = base_dir or os.getcwd()
     self.remotes = remotes
     self.projects = projects
     self.default_refspec = default_refspec
     self.default_remote = default_remote
 
   @staticmethod
-  def from_dict(data):
+  def from_dict(data, base_dir=None):
     remotes = dict([(name, Remote.from_dict(d)) for (name, d) in data.get('remotes', {}).iteritems()])
 
     default_remote = data.get("default-remote", "origin")
     assert default_remote in remotes
 
     man = Manifest(
+      base_dir=base_dir,
       default_refspec=data.get("default-revision", "master"),
       default_remote=default_remote,
       remotes=remotes)
@@ -32,6 +35,11 @@ class Manifest(object):
         name=name,
         data=d))
     return man
+
+  @classmethod
+  def from_json_file(cls, path):
+    data = simplejson.load(file(path))
+    return cls.from_dict(data, base_dir=os.path.abspath(os.path.dirname(path)))
 
   def add_project(self, project):
     if project.name in self.projects:
@@ -129,8 +137,7 @@ class Project(object):
 
 
 def load_manifest(path):
-  data = simplejson.load(file(path))
-  return Manifest.from_dict(data)
+  return Manifest.from_json_file(path)
 
 
 def test_json_load_store():
