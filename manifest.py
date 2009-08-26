@@ -88,6 +88,7 @@ class Project(object):
                remotes=None,
                tracking_branch=None, # the name of the tracking branch
                remote_ref="master", # what ref to track
+               tracks_remote_ref=True,
                from_remote="origin", # where to pull from
                dir=None,
                remote_project_name = None
@@ -98,6 +99,7 @@ class Project(object):
     self._dir = dir if dir else name
     self.from_remote = from_remote
     self.remote_ref = remote_ref
+    self.tracks_remote_ref = tracks_remote_ref
     self.tracking_branch = tracking_branch
     self.remote_project_name = remote_project_name if remote_project_name else name
 
@@ -122,15 +124,16 @@ class Project(object):
 
     track_tag = data.get('track-tag')
     track_branch = data.get('track-branch')
+    track_hash = data.get('track-hash')
+
+
+    if len([ x for x in [track_tag, track_branch, track_hash] if x]) != 1:
+      raise Exception("Cannot specify more than one of track-branch, track-tag, or track-hash for project %s" %
+                      name)
 
     # This is old and deprecated
     ref = data.get('refspec')
-
-    if track_tag and track_branch:
-      raise Exception("Cannot specify both track-branch and track-tag for project %s" %
-                      name)
-
-    if not track_tag and not track_branch:
+    if not track_tag and not track_branch and not track_hash:
       if ref:
         logging.warn("'ref' is deprecated - use either track-branch or track-tag " +
                      "for project %s" % name)
@@ -140,10 +143,16 @@ class Project(object):
     
     if track_tag:
       remote_ref = "refs/tags/" + track_tag
+      tracks_remote_ref = True
       tracking_branch = track_tag
     elif track_branch:
       remote_ref = "%s/%s" % (from_remote, track_branch)
+      tracks_remote_ref = True
       tracking_branch = track_branch
+    elif track_hash:
+      remote_ref = track_hash
+      tracks_remote_ref = False
+      tracking_branch = "crepo"
     else:
       assert False and "Cannot get here!"
       
@@ -152,6 +161,7 @@ class Project(object):
                    manifest=manifest,
                    remotes=my_remotes,
                    remote_ref=remote_ref,
+                   tracks_remote_ref=tracks_remote_ref,
                    tracking_branch=tracking_branch,
                    dir=data.get('dir', name),
                    from_remote=from_remote,
@@ -201,8 +211,12 @@ class Project(object):
     if repo.command(["show-ref", "-q", "HEAD"]) != 0:
       # There is no HEAD (maybe origin/master doesnt exist) so check out the tracking
       # branch
-      repo.check_command(["checkout", "--track", "-b", self.tracking_branch,
-                        self.remote_ref])
+      if self.tracks_remote_ref:
+        repo.check_command(["checkout", "--track", "-b", self.tracking_branch,
+                          self.remote_ref])
+      else:
+        repo.check_command(["checkout", "-b", self.tracking_branch,
+                          self.remote_ref])
     else:
       repo.check_command(["checkout"])
     
@@ -234,8 +248,11 @@ class Project(object):
     if branch_missing:
       logging.warn("Branch %s does not exist in project %s. checking out." %
                    (self.tracking_branch, self.name))
-      self.git_repo.command(["branch", "--track",
-                    self.tracking_branch, self.remote_ref])
+      if self.tracks_remote_ref:
+        self.git_repo.command(["branch", "--track",
+                      self.tracking_branch, self.remote_ref])
+      else:
+        self.git_repo.command(["branch", self.tracking_branch, self.remote_ref])
     
 
   def checkout_tracking_branch(self):
