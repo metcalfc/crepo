@@ -127,7 +127,7 @@ class Project(object):
     track_hash = data.get('track-hash')
 
 
-    if len([ x for x in [track_tag, track_branch, track_hash] if x]) != 1:
+    if len([ x for x in [track_tag, track_branch, track_hash] if x]) > 1:
       raise Exception("Cannot specify more than one of track-branch, track-tag, or track-hash for project %s" %
                       name)
 
