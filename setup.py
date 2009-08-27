@@ -11,4 +11,5 @@ setup(
     py_modules=['crepo', 'git_command', 'git_repo', 'manifest', 'trace', 'test' ],
     entry_points = { 'console_scripts': [ 'crepo = crepo:main', ], },
     data_files=[('shell-tests', ['shell-tests/basic_test.sh', 'shell-tests/follow_tag.sh', 'shell-tests/smoke_test.sh']),],
+    install_requires = ['setuptools', 'simplejson'],
 )
