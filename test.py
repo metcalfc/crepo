@@ -7,7 +7,7 @@ import os
 import subprocess
 import re
 
-TESTS_DIR=os.path.join(os.path.dirname(__file__), "shell-tests")
+TESTS_DIR=os.path.join(os.getcwd(), "shell-tests")
 
 class ShellTests(TestCase):
   def _run_shell_test(self, path):

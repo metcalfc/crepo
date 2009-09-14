@@ -1,0 +1,2 @@
+include LICENSE README *.py 
+recursive-include shell-tests *
