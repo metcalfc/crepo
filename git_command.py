@@ -29,6 +29,7 @@ class GitCommand(object):
   def __init__(self,
                cmdv,
                capture_stdout = False,
+               ignore_stdout=False,
                capture_stderr = False,
                cwd = None):
     env = dict(os.environ)
@@ -47,6 +48,8 @@ class GitCommand(object):
     command.extend(cmdv)
 
     stdout = subprocess.PIPE if capture_stdout else None
+    if ignore_stdout:
+      stdout=file("/dev/null", "w")
     stderr = subprocess.PIPE if capture_stderr else None
 
     if IsTrace():
