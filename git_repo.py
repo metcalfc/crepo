@@ -44,14 +44,14 @@ class GitRepo(object):
   def is_workdir_dirty(self):
     """Return true if the working directory is dirty (ie there are unstaged changes)"""
     # This incantation borrowed from git-rebase shell script
-    return self.command(["update-index", "--ignore-submodules", "--refresh"],
+    return self.command(["update-index", "--refresh"],
       ignore_stdout=True)
 
   def is_index_dirty(self):
     """Return true if the index is dirty (ie there are uncommited but staged changes)"""
     # This incantation borrowed from git-rebase shell script
     out = self.command(["diff-index", "--cached", "--name-status", "-r",
-      "--ignore-submodules", "HEAD", "--"],
+      "HEAD", "--"],
       capture_stdout=True)
     return bool(out)
 
