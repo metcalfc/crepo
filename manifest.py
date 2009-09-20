@@ -81,14 +81,69 @@ class Remote(object):
   def data_for_json(self):
     return {'fetch': self.fetch}
 
+class TrackBranch(object):
+  def __init__(self, from_remote, track_branch):
+    self.from_remote = from_remote
+    self.tracking_branch = track_branch
+
+  @property
+  def remote_ref(self):
+    return "remotes/%s/%s" % (self.from_remote, self.tracking_branch)
+
+  def tracking_status(self, repo):
+    return repo.tracking_status(
+      self.tracking_branch, "%s/%s" % (self.from_remote, self.tracking_branch))
+
+  def create_tracking_branch(self, repo):
+    repo.command(["branch", "--track",
+                  self.tracking_branch, self.remote_ref])
+
+
+class TrackHash(object):
+  def __init__(self, hash):
+    self.hash = hash
+
+  @property
+  def tracking_branch(self):
+    return "crepo"
+
+  @property
+  def remote_ref(self):
+    return self.hash
+
+  def tracking_status(self, repo):
+    return repo.tracking_status(
+      "crepo", self.hash)
+
+  def create_tracking_branch(self, repo):
+    repo.command(["branch", "crepo", self.hash])
+
+class TrackTag(object):
+  def __init__(self, tag):
+    self.tag = tag
+
+  @property
+  def tracking_branch(self):
+    return self.tag
+
+  @property
+  def remote_ref(self):
+    return "refs/tags/" + self.tag
+
+  def tracking_status(self, repo):
+    return repo.tracking_status(
+      "refs/heads/%s" % self.tag, self.remote_ref)
+
+  def create_tracking_branch(self, repo):
+    repo.command(["branch", self.tag, self.remote_ref])
+
+
 class Project(object):
   def __init__(self,
                name=None,
                manifest=None,
                remotes=None,
-               tracking_branch=None, # the name of the tracking branch
-               remote_ref="master", # what ref to track
-               tracks_remote_ref=True,
+               tracker=None,
                from_remote="origin", # where to pull from
                dir=None,
                remote_project_name = None
@@ -97,10 +152,8 @@ class Project(object):
     self.manifest = manifest
     self.remotes = remotes if remotes else []
     self._dir = dir if dir else name
+    self.tracker = tracker
     self.from_remote = from_remote
-    self.remote_ref = remote_ref
-    self.tracks_remote_ref = tracks_remote_ref
-    self.tracking_branch = tracking_branch
     self.remote_project_name = remote_project_name if remote_project_name else name
 
   @staticmethod
@@ -126,10 +179,10 @@ class Project(object):
     track_branch = data.get('track-branch')
     track_hash = data.get('track-hash')
 
-
-    if len([ x for x in [track_tag, track_branch, track_hash] if x]) > 1:
-      raise Exception("Cannot specify more than one of track-branch, track-tag, or track-hash for project %s" %
-                      name)
+    if len(filter(None, [track_tag, track_branch, track_hash])) > 1:
+      raise Exception(
+        "Cannot specify more than one of track-branch, track-tag, " +
+        "or track-hash for project %s" % name)
 
     # This is old and deprecated
     ref = data.get('refspec')
@@ -142,17 +195,11 @@ class Project(object):
         track_branch = "master"
     
     if track_tag:
-      remote_ref = "refs/tags/" + track_tag
-      tracks_remote_ref = True
-      tracking_branch = track_tag
+      tracker = TrackTag(track_tag)
     elif track_branch:
-      remote_ref = "%s/%s" % (from_remote, track_branch)
-      tracks_remote_ref = True
-      tracking_branch = track_branch
+      tracker = TrackBranch(from_remote, track_branch)
     elif track_hash:
-      remote_ref = track_hash
-      tracks_remote_ref = False
-      tracking_branch = "crepo"
+      tracker = TrackHash(track_hash)
     else:
       assert False and "Cannot get here!"
       
@@ -160,9 +207,7 @@ class Project(object):
     return Project(name=name,
                    manifest=manifest,
                    remotes=my_remotes,
-                   remote_ref=remote_ref,
-                   tracks_remote_ref=tracks_remote_ref,
-                   tracking_branch=tracking_branch,
+                   tracker=tracker,
                    dir=data.get('dir', name),
                    from_remote=from_remote,
                    remote_project_name=remote_project_name)
@@ -170,8 +215,7 @@ class Project(object):
 
   @property
   def tracking_status(self):
-    return self.git_repo.tracking_status(
-      self.tracking_branch, self.remote_ref)
+    return self.tracker.tracking_status(self.git_repo)
 
   def to_json(self):
     return simplejson.dumps(self.data_for_json())
@@ -242,23 +286,19 @@ class Project(object):
       self.init()
 
     branch_missing = self.git_repo.command(
-      ["rev-parse", "--verify", "-q", "refs/heads/%s" % self.tracking_branch],
+      ["rev-parse", "--verify", "-q", "refs/heads/%s" % self.tracker.tracking_branch],
       capture_stdout=True)
 
     if branch_missing:
       logging.warn("Branch %s does not exist in project %s. checking out." %
-                   (self.tracking_branch, self.name))
-      if self.tracks_remote_ref:
-        self.git_repo.command(["branch", "--track",
-                      self.tracking_branch, self.remote_ref])
-      else:
-        self.git_repo.command(["branch", self.tracking_branch, self.remote_ref])
+                   (self.tracker.tracking_branch, self.name))
+      self.tracker.create_tracking_branch(self.git_repo)
     
 
   def checkout_tracking_branch(self):
     """Check out the correct tracking branch."""
     self.ensure_tracking_branch()
-    self.git_repo.check_command(["checkout", self.tracking_branch])
+    self.git_repo.check_command(["checkout", self.tracker.tracking_branch])
 
 def load_manifest(path):
   return Manifest.from_json_file(path)

@@ -72,7 +72,7 @@ def sync(args):
       retcode = 1
       continue
     elif right > 0:
-      repo.check_command(["merge", project.remote_ref])
+      repo.check_command(["merge", project.tracker.remote_ref])
     else:
       print >>sys.stderr, "Project %s needs no update" % project.name
 
@@ -130,7 +130,7 @@ def hard_reset_branches(args):
   man = load_manifest()
   for (name, project) in man.projects.iteritems():
     print >>sys.stderr, "Hard resetting tracking branch in project: %s" % name
-    project.git_repo.check_command(["reset", "--hard", project.remote_ref])
+    project.git_repo.check_command(["reset", "--hard", project.tracker.remote_ref])
   
 
 def do_all_projects(args):
@@ -217,7 +217,9 @@ def _format_tracking(local_branch, remote_branch,
 
 def project_status(project, indent=0):
   repo = project.git_repo
-  repo_status(repo, project.tracking_branch, project.remote_ref, indent=indent)
+  repo_status(repo,
+              project.tracker.tracking_branch,
+              project.tracker.remote_ref, indent=indent)
 
 def repo_status(repo, tracking_branch, remote_ref, indent=0):
   # Make sure the right branch is checked out
@@ -226,7 +228,7 @@ def repo_status(repo, tracking_branch, remote_ref, indent=0):
                          (repo.current_branch(), tracking_branch))
 
   # Make sure the branches exist
-  has_tracking = repo.has_ref(tracking_branch)
+  has_tracking = repo.has_ref("refs/heads/" + tracking_branch)
   has_remote = repo.has_ref(remote_ref)
 
   if not has_tracking:
@@ -240,7 +242,7 @@ def repo_status(repo, tracking_branch, remote_ref, indent=0):
     return
 
   # Print tracking branch status
-  (left, right) = repo.tracking_status(tracking_branch, remote_ref)
+  (left, right) = repo.tracking_status("refs/heads/" + tracking_branch, remote_ref)
   text = _format_tracking(tracking_branch, remote_ref, left, right)
   indent_str = " " * indent
   print textwrap.fill(text, initial_indent=indent_str, subsequent_indent=indent_str)

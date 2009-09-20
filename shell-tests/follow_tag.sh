@@ -50,7 +50,7 @@ $CREPO sync
 
 ## Check that the checkout is correct
 pushd repo_a
-test $(git symbolic-ref HEAD) == "refs/heads/commit_b"
+test "$(git symbolic-ref HEAD)" == "refs/heads/commit_b"
 test $(git remote) == "origin"
 test -f file_a
 popd
