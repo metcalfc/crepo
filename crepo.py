@@ -1,6 +1,7 @@
 #!/usr/bin/env python2.5
 # (c) Copyright 2009 Cloudera, Inc.
-
+from __future__ import with_statement
+from contextlib import closing
 import os
 import sys
 import optparse
@@ -317,8 +318,65 @@ def dump_refs(args):
                 "origin/" + repo.current_branch(),
                 indent=2)
     check_dirty_repo(repo, indent=2)
-  
 
+def update_indirect(args):
+  """
+  Change track-indirect projects to point to what you've got them pointed at.
+  """
+  man = load_manifest()
+
+
+  # parse args
+  force = False
+  for arg in args:
+    if arg == "-f":
+      force = True
+
+  # Some markers so we can output status at the end
+  saw_indirects = False # are there any indirect tracks?
+  possible_actions = False # were there any where we could take action?
+
+  # Come up with the list of indirect projects we might want to twiddle
+  for project in man.projects.itervalues():
+    if not isinstance(project.tracker, manifest.TrackIndirect):
+      continue
+    saw_indirects = True
+    repo = project.git_repo
+    tracker = project.tracker
+    (left, right) = project.tracking_status
+
+    # If we're pointed at what we're supposed to, skip
+    if left == 0 and right == 0:
+      continue
+
+    possible_actions = True
+    print "Project %s:" % project.name
+    print "  Indirect file: %s" % tracker.indirection_file
+    print
+    project_status(project, indent=2)
+
+    cur_revision = repo.rev_parse("HEAD")
+
+    # We are strictly ahead of where we should be
+    if left > 0 and right == 0:
+      if not force:
+        print
+        print "Do you want to update this project to the currently checked out revision?"
+        print " (revision %s)" % cur_revision
+        print " (Y/n): ",
+        sys.stdout.flush()
+        res = sys.stdin.readline().rstrip().lower()
+        if res != 'y' and res != '':
+          continue
+
+      with closing(file(tracker.indirection_file, "w")) as f:
+        print >>f, cur_revision
+      print "Updated"
+
+  if not saw_indirects:
+    print "No indirect projects!"
+  elif not possible_actions:
+    print "All indirect projects are up to date!"
 
 COMMANDS = {
   'help': help,
@@ -332,7 +390,8 @@ COMMANDS = {
   'status': status,
   'check-dirty': check_dirty,
   'setup-remotes': ensure_remotes,
-  'dump-refs': dump_refs
+  'dump-refs': dump_refs,
+  'update-indirect': update_indirect,
   }
 
 def usage():

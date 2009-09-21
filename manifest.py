@@ -1,5 +1,8 @@
 #!/usr/bin/env python2.5
 # (c) Copyright 2009 Cloudera, Inc.
+from __future__ import with_statement
+
+from contextlib import closing
 import logging
 import os
 import simplejson
@@ -52,6 +55,41 @@ class Manifest(object):
     self.projects[project.name] = project
 
 
+class IndirectionDb(object):
+  # KILL ME?
+  OPEN_DBS = {}
+
+  def __init__(self, path):
+    self.path = path
+
+    for line in file(path).xreadlines():
+      line = line.rstrip()
+      key, val = line.split('=', 1)
+      self.data[key] = val
+
+  def dump_to(self, path):
+    with closing(file(path, "w")) as f:
+      for key, val in sorted(self.data.iteritems()):
+        print >>f, "%s=%s\n" % (key, val)
+
+  def get_indirection(self, key):
+    return self.data.get(key)
+
+  def set_indirection(self, key, val):
+    self.data[key] = val
+
+  @classmethod
+  def load(cls, path):
+    path = os.path.abspath(path)
+    if path in cls.OPEN_DBS:
+      return cls.OPEN_DBS[path]
+    else:
+      db = IndirectionDb(path)
+      cls.OPEN_DBS[path] = db
+      return db
+
+
+
 class Remote(object):
   def __init__(self,
                fetch):
@@ -99,6 +137,7 @@ class TrackHash(object):
   def create_tracking_branch(self, repo):
     repo.command(["branch", "crepo", self.hash])
 
+
 class TrackTag(object):
   def __init__(self, tag):
     self.tag = tag
@@ -117,6 +156,27 @@ class TrackTag(object):
 
   def create_tracking_branch(self, repo):
     repo.command(["branch", self.tag, self.remote_ref])
+
+
+class TrackIndirect(object):
+  def __init__(self, indirection_file):
+    self.indirection_file = os.path.abspath(indirection_file)
+
+  @property
+  def tracking_branch(self):
+    return "crepo"
+
+  @property
+  def remote_ref(self):
+    return file(self.indirection_file).read().strip()
+
+  def tracking_status(self, repo):
+    return repo.tracking_status(
+      self.tracking_branch, self.remote_ref)
+
+  def create_tracking_branch(self, repo):
+    repo.command(["branch", self.tracking_branch, self.remote_ref])
+
 
 
 class Project(object):
@@ -159,31 +219,34 @@ class Project(object):
     track_tag = data.get('track-tag')
     track_branch = data.get('track-branch')
     track_hash = data.get('track-hash')
+    track_indirect = data.get('track-indirect')
 
-    if len(filter(None, [track_tag, track_branch, track_hash])) > 1:
+    if len(filter(None, [track_tag, track_branch, track_hash, track_indirect])) > 1:
       raise Exception(
         "Cannot specify more than one of track-branch, track-tag, " +
-        "or track-hash for project %s" % name)
+        "track-hash, or track-indirect for project %s" % name)
 
     # This is old and deprecated
     ref = data.get('refspec')
-    if not track_tag and not track_branch and not track_hash:
+    if not track_tag and not track_branch and not track_hash and not track_indirect:
       if ref:
         logging.warn("'ref' is deprecated - use either track-branch or track-tag " +
                      "for project %s" % name)
         track_branch = ref
       else:
         track_branch = "master"
-    
+
     if track_tag:
       tracker = TrackTag(track_tag)
     elif track_branch:
       tracker = TrackBranch(from_remote, track_branch)
     elif track_hash:
       tracker = TrackHash(track_hash)
+    elif track_indirect:
+      tracker = TrackIndirect(track_indirect)
     else:
       assert False and "Cannot get here!"
-      
+
 
     return Project(name=name,
                    manifest=manifest,
