@@ -117,7 +117,7 @@ class TrackTag(object):
 
   def create_tracking_branch(self, repo):
     repo.command(["branch", self.tag, self.remote_ref])
-    
+
 
 class Project(object):
   def __init__(self,
@@ -270,6 +270,3 @@ class Project(object):
     """Check out the correct tracking branch."""
     self.ensure_tracking_branch()
     self.git_repo.check_command(["checkout", self.tracker.tracking_branch])
-
-def load_manifest(path):
-  return Manifest.from_json_file(path)

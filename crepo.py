@@ -14,7 +14,7 @@ LOADED_MANIFEST = None
 def load_manifest():
   global LOADED_MANIFEST
   if not LOADED_MANIFEST:
-    LOADED_MANIFEST = manifest.load_manifest("manifest.json")
+    LOADED_MANIFEST = manifest.Manifest.from_json_file("manifest.json")
   return LOADED_MANIFEST
 
 def help(args):
