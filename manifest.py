@@ -51,20 +51,6 @@ class Manifest(object):
       raise Exception("Project %s already in manifest" % project.name)
     self.projects[project.name] = project
 
-  def to_json(self):
-    return simplejson.dumps(self.data_for_json(), indent=2)
-
-  def data_for_json(self):
-    return {
-      "default-revision": self.default_ref,
-      "default-remote": self.default_remote,
-      "remotes": dict( [(name, remote.data_for_json()) for (name, remote) in self.remotes.iteritems()] ),
-      "projects": dict( [(name, project.data_for_json()) for (name, project) in self.projects.iteritems()] ),
-      }
-
-  def __repr__(self):
-    return self.to_json()
-
 
 class Remote(object):
   def __init__(self,
@@ -75,11 +61,6 @@ class Remote(object):
   def from_dict(data):
     return Remote(fetch=data.get('fetch'))
 
-  def to_json(self):
-    return simplejson.dumps(self.data_for_json(), indent=2)
-
-  def data_for_json(self):
-    return {'fetch': self.fetch}
 
 class TrackBranch(object):
   def __init__(self, from_remote, track_branch):
@@ -136,7 +117,7 @@ class TrackTag(object):
 
   def create_tracking_branch(self, repo):
     repo.command(["branch", self.tag, self.remote_ref])
-
+    
 
 class Project(object):
   def __init__(self,
@@ -217,16 +198,6 @@ class Project(object):
   def tracking_status(self):
     return self.tracker.tracking_status(self.git_repo)
 
-  def to_json(self):
-    return simplejson.dumps(self.data_for_json())
-
-  def data_for_json(self):
-    return {'name': self.name,
-            'remotes': self.remotes.keys(),
-            'ref': self.ref,
-            'from-remote': self.from_remote,
-            'dir': self.dir}
-
   @property
   def dir(self):
     return os.path.join(self.manifest.base_dir, self._dir)
@@ -302,8 +273,3 @@ class Project(object):
 
 def load_manifest(path):
   return Manifest.from_json_file(path)
-
-
-def test_json_load_store():
-  man = load_manifest(os.path.join(os.path.dirname(__file__), 'test', 'test_manifest.json'))
-  assert len(man.to_json()) > 10
