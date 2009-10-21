@@ -289,12 +289,7 @@ class Project(object):
     if repo.command(["show-ref", "-q", "HEAD"]) != 0:
       # There is no HEAD (maybe origin/master doesnt exist) so check out the tracking
       # branch
-      if self.tracks_remote_ref:
-        repo.check_command(["checkout", "--track", "-b", self.tracking_branch,
-                          self.remote_ref])
-      else:
-        repo.check_command(["checkout", "-b", self.tracking_branch,
-                          self.remote_ref])
+      self.tracker.create_tracking_branch(repo)
     else:
       repo.check_command(["checkout"])
     
