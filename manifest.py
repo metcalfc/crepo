@@ -5,6 +5,7 @@ from __future__ import with_statement
 from contextlib import closing
 import logging
 import os
+import re
 import simplejson
 
 from git_command import GitCommand
@@ -46,7 +47,9 @@ class Manifest(object):
 
   @classmethod
   def from_json_file(cls, path):
-    data = simplejson.load(file(path))
+    data_txt = file(path).read()
+    data_txt = re.sub(r'(?s)/\*.+?\*/', "", data_txt)
+    data = simplejson.loads(data_txt)
     return cls.from_dict(data, base_dir=os.path.abspath(os.path.dirname(path)))
 
   def add_project(self, project):

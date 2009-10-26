@@ -37,10 +37,12 @@ mkdir tests
 pushd tests
 
 cat > manifest.json <<EOF
-{  
+{   /* comment here! */
   "remotes":
     {"origin": { "fetch": "$TESTDIR/%(name)s" }},
- 
+/* multi
+line
+comment*/
   "projects":
     {"repo_a": { "track-tag": "commit_b" }}
 }
