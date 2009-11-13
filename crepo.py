@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.5
+#!/usr/bin/env python
 # (c) Copyright 2009 Cloudera, Inc.
 from __future__ import with_statement
 from contextlib import closing
