@@ -111,6 +111,15 @@ $CREPO sync
   popd
 test $($CREPO status | grep 'up to date' | wc -l) -eq 2
 
+# Edit a file and make sure we see it as dirty
+echo > repo_a/file_a
+$CREPO check-dirty && exit 1
+
+## Make sure sync -f blows away changes
+$CREPO sync -f
+# No longer should be dirty
+$CREPO check-dirty
+
 # Commit something locally and do a crepo sync
 
 $CREPO status | grep -A1 'repo_a' | grep -v '1 revisions ahead'
@@ -120,10 +129,13 @@ pushd repo_a
 popd
 $CREPO status | grep -A1 'repo_a' | grep '1 revisions ahead of remote'
 
+# Sync shouldn't do anything
 $CREPO sync && exit 1
+$CREPO status | grep -A1 'repo_a' | grep '1 revisions ahead of remote'
 
-## Edit a file and make sure we see it as dirty
+## sync -f shouldn't blow away local changes
+$CREPO sync -f && exit 1
+$CREPO status | grep -A1 'repo_a' | grep '1 revisions ahead of remote'
 
-echo > repo_a/file_a
-$CREPO check-dirty && exit 1
 echo ALL GOOD
+

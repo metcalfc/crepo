@@ -45,9 +45,14 @@ def sync(args):
     - if the local branch is not dirty and it is a fast-forward update, merges
       the remote branch's changes in
 
+  Options:
+    -f  - if you have dirty repositories, will blow away changes rather than
+          failing. This does *not* reset your branch if you have local
+          *committed* changes.
+
   Process exit code will be 0 if all projects updated correctly.
   """
-  
+  force = '-f' in args  
   man = load_manifest()
 
   for (name, project) in man.projects.iteritems():
@@ -55,16 +60,20 @@ def sync(args):
       project.clone()
   ensure_remotes([])
   fetch([])
-  checkout_branches([])
+  checkout_branches(args)
 
   retcode = 0
   
   for project in man.projects.itervalues():
     repo = project.git_repo
     if repo.is_workdir_dirty() or repo.is_index_dirty():
-      print >>sys.stderr, "Not syncing project %s - it is dirty." % project.name
-      retcode = 1
-      continue
+      if force:
+        print >>sys.stderr, "Blowing away changes in %s" % project.name
+        repo.check_command(['reset', '--hard', 'HEAD'])
+      else:
+        print >>sys.stderr, "Not syncing project %s - it is dirty." % project.name
+        retcode = 1
+        continue
     (left, right) = project.tracking_status
     if left > 0:
       print >>sys.stderr, \
