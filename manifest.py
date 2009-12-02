@@ -293,6 +293,7 @@ class Project(object):
       # There is no HEAD (maybe origin/master doesnt exist) so check out the tracking
       # branch
       self.tracker.create_tracking_branch(repo)
+      repo.check_command(["checkout", self.tracker.tracking_branch])
     else:
       repo.check_command(["checkout"])
     
