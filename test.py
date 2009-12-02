@@ -5,6 +5,7 @@ import unittest
 from unittest import TestCase
 import os
 import subprocess
+import sys
 import re
 
 TESTS_DIR=os.path.join(os.getcwd(), "shell-tests")
@@ -12,8 +13,14 @@ TESTS_DIR=os.path.join(os.getcwd(), "shell-tests")
 class ShellTests(TestCase):
   def _run_shell_test(self, path):
     print "running: " + path
-    ret = subprocess.call([os.path.join(TESTS_DIR, path)])
-    self.assertEquals(ret, 0)
+    p = subprocess.Popen([os.path.join(TESTS_DIR, path)],
+      stdout=subprocess.PIPE,
+      stderr=subprocess.PIPE)
+    stdout, stderr = p.communicate()
+    ret = p.wait()
+    if ret != 0:
+      print >>sys.stderr, "Stderr:\n%s\n\nStdout:\n%s\n" % (stderr, stdout)
+      self.fail("Test at %s failed" % path)
 
 def __add_tests():
   for x in os.listdir(TESTS_DIR):
