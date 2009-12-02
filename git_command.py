@@ -47,10 +47,10 @@ class GitCommand(object):
     command = [GIT]
     command.extend(cmdv)
 
-    stdout = subprocess.PIPE if capture_stdout else None
+    stdout = capture_stdout and subprocess.PIPE or None
     if ignore_stdout:
-      stdout=file("/dev/null", "w")
-    stderr = subprocess.PIPE if capture_stderr else None
+       stdout=file("/dev/null", "w")
+    stderr = capture_stderr and subprocess.PIPE or None
 
     if IsTrace():
       global LAST_CWD

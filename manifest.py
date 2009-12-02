@@ -1,8 +1,5 @@
-#!/usr/bin/env python2.5
+#!/usr/bin/env python
 # (c) Copyright 2009 Cloudera, Inc.
-from __future__ import with_statement
-
-from contextlib import closing
 import logging
 import os
 import re
@@ -71,9 +68,12 @@ class IndirectionDb(object):
       self.data[key] = val
 
   def dump_to(self, path):
-    with closing(file(path, "w")) as f:
-      for key, val in sorted(self.data.iteritems()):
-        print >>f, "%s=%s\n" % (key, val)
+    f = file(path, "w")
+    try:
+       for key, val in sorted(self.data.iteritems()):
+         print >>f, "%s=%s\n" % (key, val)
+    finally:
+      f.close()
 
   def get_indirection(self, key):
     return self.data.get(key)
@@ -194,11 +194,11 @@ class Project(object):
                ):
     self.name = name
     self.manifest = manifest
-    self.remotes = remotes if remotes else []
-    self._dir = dir if dir else name
+    self.remotes = remotes or []
+    self._dir = dir or name
     self.tracker = tracker
     self.from_remote = from_remote
-    self.remote_project_name = remote_project_name if remote_project_name else name
+    self.remote_project_name = remote_project_name or name
 
   @staticmethod
   def from_dict(manifest, name, data):

@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 # (c) Copyright 2009 Cloudera, Inc.
-from __future__ import with_statement
-from contextlib import closing
 import os
 import sys
 import optparse
@@ -378,8 +376,11 @@ def update_indirect(args):
         if res != 'y' and res != '':
           continue
 
-      with closing(file(tracker.indirection_file, "w")) as f:
-        print >>f, cur_revision
+      f = file(tracker.indirection_file, "w")
+      try:
+         print >>f, cur_revision
+      finally:
+        f.close()
       print "Updated"
 
   if not saw_indirects:
