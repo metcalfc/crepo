@@ -316,7 +316,7 @@ class Project(object):
   def ensure_tracking_branch(self):
     """Ensure that the tracking branch exists."""
     if not self.is_cloned():
-      self.init()
+      self.clone()
 
     branch_missing = self.git_repo.command(
       ["rev-parse", "--verify", "-q", "refs/heads/%s" % self.tracker.tracking_branch],
