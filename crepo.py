@@ -63,6 +63,9 @@ def sync(args):
   retcode = 0
   
   for project in man.projects.itervalues():
+    if project.is_uptodate():
+      continue
+
     repo = project.git_repo
     if repo.is_workdir_dirty() or repo.is_index_dirty():
       if force:
@@ -129,6 +132,9 @@ def checkout_branches(args):
   
   man = load_manifest()
   for (name, project) in man.projects.iteritems():
+    if project.is_uptodate():
+      continue
+
     print >>sys.stderr, "Checking out tracking branch in project: %s" % name
     project.checkout_tracking_branch()
 
@@ -167,8 +173,11 @@ def do_all_projects(args):
   for p in towait:
     p.Wait()
       
-def do_all_projects_remotes(args):
+def do_all_projects_remotes(args, filter_fn=None):
   """Run the given git-command in every project, once for each remote.
+  If filter_fn is given, it will be invoked as:
+    filter_fn(project) -> True/False
+  and the command will be invoked only for the projects returning True.
 
   Pass -p to do it in parallel"""
   man = load_manifest()
@@ -181,6 +190,8 @@ def do_all_projects_remotes(args):
   towait = []
 
   for (name, project) in man.projects.iteritems():
+    if filter_fn is not None and not filter_fn(project):
+      continue
     for remote_name in project.remotes.keys():
       cmd = [arg % {"remote": remote_name} for arg in args]
       print >>sys.stderr, "In project: ", name, " running ", " ".join(cmd)
@@ -196,9 +207,17 @@ def do_all_projects_remotes(args):
 
 def fetch(args):
   """Run git-fetch in every project"""
+  def _filter(proj):
+    if proj.is_uptodate():
+      print >>sys.stderr, "%s is already up to date" % (proj,)
+      return False
+    else:
+      return True
+
   do_all_projects_remotes(
     args + ["fetch", "-t", "%(remote)s",
-            "refs/heads/*:refs/remotes/%(remote)s/*"])
+            "refs/heads/*:refs/remotes/%(remote)s/*"],
+    _filter)
 
 def pull(args):
   """Run git-pull in every project"""

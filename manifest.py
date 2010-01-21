@@ -199,6 +199,15 @@ class Project(object):
     self.tracker = tracker
     self.from_remote = from_remote
     self.remote_project_name = remote_project_name or name
+    # If this project tracks hash or indirect, it may already be up-to-date
+    try:
+        self.__is_uptodate = \
+            (self.tracker.remote_ref == self.git_repo.rev_parse("HEAD"))
+    except Exception:                   # Error due to uninitialized project
+        self.__is_uptodate = False
+
+  def __str__(self):
+    return "Project %s" % (self.name,)
 
   @staticmethod
   def from_dict(manifest, name, data):
@@ -272,6 +281,9 @@ class Project(object):
   def git_repo(self):
     return GitRepo(self.dir)
 
+  def is_uptodate(self):
+    return self.__is_uptodate
+
   def is_cloned(self):
     return self.git_repo.is_cloned()
 
@@ -296,6 +308,7 @@ class Project(object):
       repo.check_command(["checkout", self.tracker.tracking_branch])
     else:
       repo.check_command(["checkout"])
+    self.__is_uptodate = True
     
 
   def ensure_remotes(self):
@@ -332,3 +345,4 @@ class Project(object):
     """Check out the correct tracking branch."""
     self.ensure_tracking_branch()
     self.git_repo.check_command(["checkout", self.tracker.tracking_branch])
+    self.__is_uptodate = True
