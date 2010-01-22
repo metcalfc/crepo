@@ -57,3 +57,8 @@ test $(git remote) == "origin"
 test -f file_a
 test -f file_b
 popd
+
+# Now sync should say "already up-to-date"
+$CREPO sync 2>&1 | grep "already up-to-date"
+
+echo ALL GOOD

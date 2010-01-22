@@ -67,3 +67,8 @@ popd
 $CREPO update-indirect -f
 
 test "$(cat .crepo/repo_a)" == "$COMMIT_C_HASH"
+
+# Now sync should say "already up-to-date"
+$CREPO sync 2>&1 | grep "already up-to-date"
+
+echo ALL GOOD

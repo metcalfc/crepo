@@ -1,12 +1,14 @@
 #!/usr/bin/env python
-# (c) Copyright 2009 Cloudera, Inc.
+# (c) Copyright 2010 Cloudera, Inc.
 import logging
 import os
 import re
 import simplejson
+import sys
 
 from git_command import GitCommand
 from git_repo import GitRepo
+import trace
 
 
 class Manifest(object):
@@ -201,10 +203,14 @@ class Project(object):
     self.remote_project_name = remote_project_name or name
     # If this project tracks hash or indirect, it may already be up-to-date
     try:
-        self.__is_uptodate = \
-            (self.tracker.remote_ref == self.git_repo.rev_parse("HEAD"))
-    except Exception:                   # Error due to uninitialized project
-        self.__is_uptodate = False
+      rev = self.git_repo.rev_parse("HEAD")
+      remote_ref = self.tracker.remote_ref
+      trace.Trace("<%s> %s (local) -- %s (remote)" %
+                  (name, rev, remote_ref))
+      self.__is_uptodate = remote_ref == rev
+    except Exception, ex:                # Error due to uninitialized project
+      trace.Trace("Non fatal error %s", ex)
+      self.__is_uptodate = False
 
   def __str__(self):
     return "Project %s" % (self.name,)
@@ -284,6 +290,9 @@ class Project(object):
   def is_uptodate(self):
     return self.__is_uptodate
 
+  def set_uptodate(self):
+    self.__is_uptodate = True
+
   def is_cloned(self):
     return self.git_repo.is_cloned()
 
@@ -308,7 +317,6 @@ class Project(object):
       repo.check_command(["checkout", self.tracker.tracking_branch])
     else:
       repo.check_command(["checkout"])
-    self.__is_uptodate = True
     
 
   def ensure_remotes(self):
@@ -345,4 +353,3 @@ class Project(object):
     """Check out the correct tracking branch."""
     self.ensure_tracking_branch()
     self.git_repo.check_command(["checkout", self.tracker.tracking_branch])
-    self.__is_uptodate = True

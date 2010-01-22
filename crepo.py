@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# (c) Copyright 2009 Cloudera, Inc.
+# (c) Copyright 2010 Cloudera, Inc.
 import os
 import sys
 import optparse
@@ -8,6 +8,7 @@ import logging
 import textwrap
 from git_command import GitCommand
 from git_repo import GitRepo
+import trace
 
 LOADED_MANIFEST = None
 def load_manifest():
@@ -84,6 +85,7 @@ def sync(args):
       continue
     elif right > 0:
       repo.check_command(["merge", project.tracker.remote_ref])
+      project.set_uptodate()
     else:
       print >>sys.stderr, "Project %s needs no update" % project.name
 
@@ -209,7 +211,7 @@ def fetch(args):
   """Run git-fetch in every project"""
   def _filter(proj):
     if proj.is_uptodate():
-      print >>sys.stderr, "%s is already up to date" % (proj,)
+      print >>sys.stderr, "%s is already up-to-date" % (proj,)
       return False
     else:
       return True
@@ -335,13 +337,19 @@ def dump_refs(args):
 
   repo = get_manifest_repo()
   if repo:
+    try:
+      repo_branch = repo.current_branch()
+    except Exception, ex:
+      trace.Trace("Failed to get current branch for %s: %s" % (repo, ex))
+      return
+
     print
     print "Manifest repo:"
     print "  HEAD: %s" % repo.rev_parse("HEAD")
-    print "  Symbolic: %s" % repo.current_branch()
+    print "  Symbolic: %s" % repo_branch
     repo_status(repo,
-                repo.current_branch(),
-                "origin/" + repo.current_branch(),
+                repo_branch,
+                "origin/" + repo_branch,
                 indent=2)
     check_dirty_repo(repo, indent=2)
 

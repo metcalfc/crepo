@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# (c) Copyright 2009 Cloudera, Inc.
+# (c) Copyright 2010 Cloudera, Inc.
 
 from git_command import GitCommand
 import os
@@ -7,6 +7,9 @@ import os
 class GitRepo(object):
   def __init__(self, path):
     self.path = path
+
+  def __str__(self):
+    return "GitRepo at " + self.path
 
   def command(self, cmdv, **kwargs):
     """
