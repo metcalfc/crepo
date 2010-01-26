@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="crepo",
-    version='0.1.5',
+    version='0.1.6',
     url="http://github.com/cloudera/crepo/tree/master",
     maintainer="Chad Metcalf",
     maintainer_email="chad@cloudera.com",
