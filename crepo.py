@@ -152,18 +152,35 @@ def hard_reset_branches(args):
 def do_all_projects(args):
   """Run the given git-command in every project
 
-  Pass -p to do it in parallel"""
+  Pass -p to do it in parallel
+  Pass -x to ignore any non-checked-out projects
+  """
   man = load_manifest()
+  
+  parallel = False
+  ignore_missing = False
 
-  if args[0] == '-p':
-    parallel = True
+  while args and args[0].startswith("-"):
+    if args[0] == '-p':
+      parallel = True
+    elif args[0] == "-x":
+      ignore_missing = True
+    else:
+      raise "Unknown flag: " + arg
     del args[0]
-  else:
-    parallel = False
 
   towait = []
 
   for (name, project) in man.projects.iteritems():
+    if not project.git_repo.is_cloned():
+      if ignore_missing:
+        print >>sys.stderr, "Skipping project " + name + " (not checked out)"
+        continue
+      else:
+        print >>sys.stderr, "Project " + name + " not cloned. " + \
+          "Pass '-x' option to skip uncloned repos in do-all"
+        sys.exit(1)
+
     print >>sys.stderr, "In project: ", name, " running ", " ".join(args)
     p = project.git_repo.command_process(args)
     if not parallel:
