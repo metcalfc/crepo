@@ -11,10 +11,14 @@ from git_repo import GitRepo
 import trace
 
 LOADED_MANIFEST = None
+
+MANIFEST_PATH = 'manifest.json'
+
 def load_manifest():
   global LOADED_MANIFEST
+  global MANIFEST_PATH
   if not LOADED_MANIFEST:
-    LOADED_MANIFEST = manifest.Manifest.from_json_file("manifest.json")
+    LOADED_MANIFEST = manifest.Manifest.from_json_file(MANIFEST_PATH)
   return LOADED_MANIFEST
 
 def help(args):
@@ -449,7 +453,7 @@ COMMANDS = {
   }
 
 def usage():
-  print >>sys.stderr, "you screwed up. here are the commands:"
+  print >>sys.stderr, "%s -m <manifest> COMMAND" % sys.argv[0]
   print >>sys.stderr
 
   max_comlen = 0
@@ -477,7 +481,15 @@ def usage():
   sys.exit(1)
 
 def main():
+  global MANIFEST_PATH
+
   args = sys.argv[1:]
+
+  if args.count('-m') > 0:
+    MANIFEST_PATH = args[args.index('-m') + 1]
+    args.remove('-m')
+    args.remove(MANIFEST_PATH)
+
   if len(args) == 0 or args[0] not in COMMANDS:
     usage()
   command = COMMANDS[args[0]]
