@@ -3,7 +3,10 @@
 import logging
 import os
 import re
-import simplejson
+try:
+  import simplejson
+except ImportError:
+  import json as simplejson
 import sys
 
 from git_command import GitCommand
