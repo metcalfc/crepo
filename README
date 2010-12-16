@@ -15,7 +15,7 @@ Put the following content in a new file called manifest.json using your favorite
 
 {
   "remotes":
-    {"origin": { "fetch": "git://github.com/apache/%s.git" }},
+    {"origin": { "fetch": "git://github.com/apache/%(name)s.git" }},
   "projects":
     {"hadoop": { "refspec": "trunk" },
      "lucene": { "refspec": "trunk" }}
@@ -25,7 +25,7 @@ Then, from within the directory that contains the manifest, run "crepo.py init".
 
 While this command runs, let's look at the manifest section by section:
 
-The "remotes" section describes places we'll look to find git repositories. Every remote must have a %s in it to describe where to substitute the project name, for now. In this case we've defined that the origin is apache's mirror on github.
+The "remotes" section describes places we'll look to find git repositories. Every remote must have a %(name)s in it to describe where to substitute the project name, for now. In this case we've defined that the origin is apache's mirror on github.
 
 Next we define the projects we want to track. For both of these projects, we define that we want to track the "trunk" reference from the remote repository. If we didn't specify this, it would try to track "master" which doesn't exist in the Apache mirrors.
 
@@ -85,8 +85,8 @@ Now we'll add another remote to your crepo manifest:
 
 {
   "remotes":
-    {"origin": { "fetch": "git://github.com/apache/%s.git" },
-     "mine": { "fetch": "git@github.com:toddlipcon/%s.git" }},
+    {"origin": { "fetch": "git://github.com/apache/%(name)s.git" },
+     "mine": { "fetch": "git@github.com:toddlipcon/%(name)s.git" }},
   "projects":
     {"hadoop": { "refspec": "tags/release-0.20.0", "remotes": ["origin", "mine"]},
      "lucene": { "refspec": "tags/lucene_2_4_1"}}
