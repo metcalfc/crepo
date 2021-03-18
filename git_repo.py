@@ -18,7 +18,7 @@ class GitRepo(object):
     @param cmdv the git command as a list of args (eg ["diff"])
     """
     return self.command_process(cmdv, **kwargs).Wait()
-  
+
   def check_command(self, cmdv, capture_stdout=False):
     """
     Runs the given git command, and raises an Exception if the status
@@ -30,7 +30,7 @@ class GitRepo(object):
       raise Exception("Command %s returned non-zero exit code: %d" %
                       (repr(cmdv), rc))
     if capture_stdout:
-      return p.stdout
+      return str(p.stdout)
 
   def command_process(self, cmdv, **kwargs):
     p = GitCommand(cwd=self.path,
@@ -94,7 +94,7 @@ class GitRepo(object):
     p = self.command_process(['rev-parse', '--verify', '-q', ref],
                              capture_stdout=True)
     return p.Wait() == 0
-    
+
 
   @property
   def name(self):

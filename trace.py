@@ -31,4 +31,4 @@ def SetTrace():
 
 def Trace(fmt, *args):
   if IsTrace():
-    print >>sys.stderr, fmt % args
+    print(fmt % args, file=sys.stderr)

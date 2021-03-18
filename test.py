@@ -12,14 +12,14 @@ TESTS_DIR=os.path.join(os.getcwd(), "shell-tests")
 
 class ShellTests(TestCase):
   def _run_shell_test(self, path):
-    print "running: " + path
+    print("running: " + path)
     p = subprocess.Popen([os.path.join(TESTS_DIR, path)],
       stdout=subprocess.PIPE,
       stderr=subprocess.PIPE)
     stdout, stderr = p.communicate()
     ret = p.wait()
     if ret != 0:
-      print >>sys.stderr, "Stderr:\n%s\n\nStdout:\n%s\n" % (stderr, stdout)
+      print("Stderr:\n%s\n\nStdout:\n%s\n" % (stderr, stdout), file=sys.stderr)
       self.fail("Test at %s failed" % path)
 
 def __add_tests():

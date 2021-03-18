@@ -3,7 +3,7 @@
 set -e
 
 DIRNAME=$(dirname $0)
-BINDIR=$(python -c "import os; print os.path.abspath('$DIRNAME')")
+BINDIR=$(realpath $DIRNAME)
 CREPO=$BINDIR/../crepo.py
 
 TESTDIR=${TESTDIR:-/tmp/follow_hash.$$}
@@ -39,10 +39,10 @@ mkdir tests
 pushd tests
 
 cat > manifest.json <<EOF
-{  
+{
   "remotes":
     {"origin": { "fetch": "$TESTDIR/%(name)s" }},
- 
+
   "projects":
     {"repo_a": { "track-hash": "$COMMIT_B" }}
 }

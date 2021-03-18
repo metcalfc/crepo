@@ -29,7 +29,7 @@ class Manifest(object):
 
   @staticmethod
   def from_dict(data, base_dir=None):
-    remotes = dict([(name, Remote.from_dict(d)) for (name, d) in data.get('remotes', {}).iteritems()])
+    remotes = dict([(name, Remote.from_dict(d)) for (name, d) in data.get('remotes', {}).items()])
 
     default_remote = data.get("default-remote", "origin")
     assert default_remote in remotes
@@ -39,8 +39,8 @@ class Manifest(object):
       default_ref=data.get("default-revision", "master"),
       default_remote=default_remote,
       remotes=remotes)
-    
-    for (name, d) in data.get('projects', {}).iteritems():
+
+    for (name, d) in data.get('projects', {}).items():
       man.add_project(Project.from_dict(
         manifest=man,
         name=name,
@@ -49,7 +49,7 @@ class Manifest(object):
 
   @classmethod
   def from_json_file(cls, path):
-    data_txt = file(path).read()
+    data_txt = open(path).read()
     data_txt = re.sub(r'(?s)/\*.+?\*/', "", data_txt)
     data = simplejson.loads(data_txt)
     return cls.from_dict(data, base_dir=os.path.abspath(os.path.dirname(path)))
@@ -67,16 +67,16 @@ class IndirectionDb(object):
   def __init__(self, path):
     self.path = path
 
-    for line in file(path).xreadlines():
+    for line in open(path):
       line = line.rstrip()
       key, val = line.split('=', 1)
       self.data[key] = val
 
   def dump_to(self, path):
-    f = file(path, "w")
+    f = open(path, "w")
     try:
-       for key, val in sorted(self.data.iteritems()):
-         print >>f, "%s=%s\n" % (key, val)
+       for key, val in sorted(self.data.items()):
+         print("%s=%s\n" % (key, val), file=f)
     finally:
       f.close()
 
@@ -176,7 +176,7 @@ class TrackIndirect(object):
 
   @property
   def remote_ref(self):
-    return file(self.indirection_file).read().strip()
+    return open(self.indirection_file).read().strip()
 
   def tracking_status(self, repo):
     return repo.tracking_status(
@@ -211,7 +211,7 @@ class Project(object):
       trace.Trace("<%s> %s (local) -- %s (remote)" %
                   (name, rev, remote_ref))
       self.__is_uptodate = remote_ref == rev
-    except Exception, ex:                # Error due to uninitialized project
+    except Exception as ex:                # Error due to uninitialized project
       trace.Trace("Non fatal error %s", ex)
       self.__is_uptodate = False
 
@@ -233,7 +233,7 @@ class Project(object):
       else:
         raise Exception("no from-remote listed for project %s, and more than one remote" %
                         name)
-    
+
     assert from_remote in my_remote_names
     remote_project_name = data.get('remote-project-name')
 
@@ -242,7 +242,7 @@ class Project(object):
     track_hash = data.get('track-hash')
     track_indirect = data.get('track-indirect')
 
-    if len(filter(None, [track_tag, track_branch, track_hash, track_indirect])) > 1:
+    if len([_f for _f in [track_tag, track_branch, track_hash, track_indirect] if _f]) > 1:
       raise Exception(
         "Cannot specify more than one of track-branch, track-tag, " +
         "track-hash, or track-indirect for project %s" % name)
@@ -350,7 +350,7 @@ class Project(object):
       logging.warn("Branch %s does not exist in project %s. checking out." %
                    (self.tracker.tracking_branch, self.name))
       self.tracker.create_tracking_branch(self.git_repo)
-    
+
 
   def checkout_tracking_branch(self):
     """Check out the correct tracking branch."""

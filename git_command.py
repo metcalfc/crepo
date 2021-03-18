@@ -49,7 +49,7 @@ class GitCommand(object):
 
     stdout = capture_stdout and subprocess.PIPE or None
     if ignore_stdout:
-       stdout=file("/dev/null", "w")
+       stdout=open("/dev/null", "w")
     stderr = capture_stderr and subprocess.PIPE or None
 
     if IsTrace():
@@ -84,7 +84,7 @@ class GitCommand(object):
                            env = env,
                            stdout = stdout,
                            stderr = stderr)
-    except Exception, e:
+    except Exception as e:
       raise Exception('%s: %s' % (command[1], e))
 
     self.process = p

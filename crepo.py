@@ -27,15 +27,15 @@ def help(args):
     command = args[0]
     doc = COMMANDS[command].__doc__
     if doc:
-      print >>sys.stderr, "Help for command %s:\n" % command
-      print >>sys.stderr, doc
+      print("Help for command %s:\n" % command, file=sys.stderr)
+      print(doc, file=sys.stderr)
       sys.exit(1)
   usage()
 
 
 def init(args):
   """Initializes repository - DEPRECATED - use sync"""
-  print >>sys.stderr, "crepo init is deprecated - use crepo sync"
+  print("crepo init is deprecated - use crepo sync", file=sys.stderr)
   sync(args)
 
 def sync(args):
@@ -55,10 +55,10 @@ def sync(args):
 
   Process exit code will be 0 if all projects updated correctly.
   """
-  force = '-f' in args  
+  force = '-f' in args
   man = load_manifest()
 
-  for (name, project) in man.projects.iteritems():
+  for (name, project) in man.projects.items():
     if not project.is_cloned():
       project.clone()
   ensure_remotes([])
@@ -66,53 +66,52 @@ def sync(args):
   checkout_branches(args)
 
   retcode = 0
-  
-  for project in man.projects.itervalues():
+
+  for project in man.projects.values():
     if project.is_uptodate():
       continue
 
     repo = project.git_repo
     if repo.is_workdir_dirty() or repo.is_index_dirty():
       if force:
-        print >>sys.stderr, "Blowing away changes in %s" % project.name
+        print("Blowing away changes in %s" % project.name, file=sys.stderr)
         repo.check_command(['reset', '--hard', 'HEAD'])
       else:
-        print >>sys.stderr, "Not syncing project %s - it is dirty." % project.name
+        print("Not syncing project %s - it is dirty." % project.name, file=sys.stderr)
         retcode = 1
         continue
     (left, right) = project.tracking_status
     if left > 0:
-      print >>sys.stderr, \
-            ("Not syncing project %s - you have %d unpushed changes." % 
-             (project.name, left))
+      print(("Not syncing project %s - you have %d unpushed changes." %
+             (project.name, left)), file=sys.stderr)
       retcode = 1
       continue
     elif right > 0:
       repo.check_command(["merge", project.tracker.remote_ref])
       project.set_uptodate()
     else:
-      print >>sys.stderr, "Project %s needs no update" % project.name
+      print("Project %s needs no update" % project.name, file=sys.stderr)
 
   return retcode
 
 def ensure_remotes(args):
   """Ensure that remotes are set up"""
   man = load_manifest()
-  for (proj_name, project) in man.projects.iteritems():
+  for (proj_name, project) in man.projects.items():
     project.ensure_remotes()
 
 
 def ensure_tracking_branches(args):
   """Ensures that the tracking branches are set up"""
   man = load_manifest()
-  for (name, project) in man.projects.iteritems():
+  for (name, project) in man.projects.items():
     project.ensure_tracking_branch()
 
 def check_dirty(args):
   """Prints output if any projects have dirty working dirs or indexes."""
   man = load_manifest()
   any_dirty = False
-  for (name, project) in man.projects.iteritems():
+  for (name, project) in man.projects.items():
     repo = project.git_repo
     any_dirty = check_dirty_repo(repo) or any_dirty
   return any_dirty
@@ -123,9 +122,9 @@ def check_dirty_repo(repo, indent=0):
 
   name = repo.name
   if workdir_dirty:
-    print " " * indent + "Project %s has a dirty working directory (unstaged changes)." % name
+    print(" " * indent + "Project %s has a dirty working directory (unstaged changes)." % name)
   if index_dirty:
-    print " " * indent + "Project %s has a dirty index (staged changes)." % name
+    print(" " * indent + "Project %s has a dirty index (staged changes)." % name)
 
   return workdir_dirty or index_dirty
 
@@ -135,23 +134,23 @@ def checkout_branches(args):
 
   if check_dirty([]) and '-f' not in args:
     raise Exception("Cannot checkout new branches with dirty projects.")
-  
+
   man = load_manifest()
-  for (name, project) in man.projects.iteritems():
+  for (name, project) in man.projects.items():
     if project.is_uptodate():
       continue
 
-    print >>sys.stderr, "Checking out tracking branch in project: %s" % name
+    print("Checking out tracking branch in project: %s" % name, file=sys.stderr)
     project.checkout_tracking_branch()
 
 def hard_reset_branches(args):
   """Hard-resets your tracking branches to match the remotes."""
   checkout_branches(args)
   man = load_manifest()
-  for (name, project) in man.projects.iteritems():
-    print >>sys.stderr, "Hard resetting tracking branch in project: %s" % name
+  for (name, project) in man.projects.items():
+    print("Hard resetting tracking branch in project: %s" % name, file=sys.stderr)
     project.git_repo.check_command(["reset", "--hard", project.tracker.remote_ref])
-  
+
 
 def do_all_projects(args):
   """Run the given git-command in every project
@@ -160,7 +159,7 @@ def do_all_projects(args):
   Pass -x to ignore any non-checked-out projects
   """
   man = load_manifest()
-  
+
   parallel = False
   ignore_missing = False
 
@@ -175,27 +174,27 @@ def do_all_projects(args):
 
   towait = []
 
-  for (name, project) in man.projects.iteritems():
+  for (name, project) in man.projects.items():
     if not project.git_repo.is_cloned():
       if ignore_missing:
-        print >>sys.stderr, "Skipping project " + name + " (not checked out)"
+        print("Skipping project " + name + " (not checked out)", file=sys.stderr)
         continue
       else:
-        print >>sys.stderr, "Project " + name + " not cloned. " + \
-          "Pass '-x' option to skip uncloned repos in do-all"
+        print("Project " + name + " not cloned. " + \
+          "Pass '-x' option to skip uncloned repos in do-all", file=sys.stderr)
         sys.exit(1)
 
-    print >>sys.stderr, "In project: ", name, " running ", " ".join(args)
+    print("In project: ", name, " running ", " ".join(args), file=sys.stderr)
     p = project.git_repo.command_process(args)
     if not parallel:
       p.Wait()
-      print >>sys.stderr
+      print(file=sys.stderr)
     else:
       towait.append(p)
 
   for p in towait:
     p.Wait()
-      
+
 def do_all_projects_remotes(args, filter_fn=None):
   """Run the given git-command in every project, once for each remote.
   If filter_fn is given, it will be invoked as:
@@ -212,16 +211,16 @@ def do_all_projects_remotes(args, filter_fn=None):
     parallel = False
   towait = []
 
-  for (name, project) in man.projects.iteritems():
+  for (name, project) in man.projects.items():
     if filter_fn is not None and not filter_fn(project):
       continue
-    for remote_name in project.remotes.keys():
+    for remote_name in list(project.remotes.keys()):
       cmd = [arg % {"remote": remote_name} for arg in args]
-      print >>sys.stderr, "In project: ", name, " running ", " ".join(cmd)
+      print("In project: ", name, " running ", " ".join(cmd), file=sys.stderr)
       p = project.git_repo.command_process(cmd)
       if not parallel:
         p.Wait()
-        print >>sys.stderr
+        print(file=sys.stderr)
       else:
         towait.append(p)
   for p in towait:
@@ -232,7 +231,7 @@ def fetch(args):
   """Run git-fetch in every project"""
   def _filter(proj):
     if proj.is_uptodate():
-      print >>sys.stderr, "%s is already up-to-date" % (proj,)
+      print("%s is already up-to-date" % (proj,), file=sys.stderr)
       return False
     else:
       return True
@@ -274,19 +273,19 @@ def project_status(project, indent=0):
 def repo_status(repo, tracking_branch, remote_ref, indent=0):
   # Make sure the right branch is checked out
   if repo.current_branch() != tracking_branch:
-    print " " * indent + ("Checked out branch is %s instead of %s" %
-                         (repo.current_branch(), tracking_branch))
+    print(" " * indent + ("Checked out branch is %s instead of %s" %
+                         (repo.current_branch(), tracking_branch)))
 
   # Make sure the branches exist
   has_tracking = repo.has_ref("refs/heads/" + tracking_branch)
   has_remote = repo.has_ref(remote_ref)
 
   if not has_tracking:
-    print " " * indent + "You appear to be missing the tracking branch " + \
-          tracking_branch
+    print(" " * indent + "You appear to be missing the tracking branch " + \
+          tracking_branch)
   if not has_remote:
-    print " " * indent + "You appear to be missing the remote branch " + \
-          remote_ref
+    print(" " * indent + "You appear to be missing the remote branch " + \
+          remote_ref)
 
   if not has_tracking or not has_remote:
     return
@@ -295,26 +294,26 @@ def repo_status(repo, tracking_branch, remote_ref, indent=0):
   (left, right) = repo.tracking_status("refs/heads/" + tracking_branch, remote_ref)
   text = _format_tracking(tracking_branch, remote_ref, left, right)
   indent_str = " " * indent
-  print textwrap.fill(text, initial_indent=indent_str, subsequent_indent=indent_str)
+  print(textwrap.fill(text, initial_indent=indent_str, subsequent_indent=indent_str))
 
 def status(args):
   """Shows where your branches have diverged from the specified remotes."""
   ensure_tracking_branches([])
   man = load_manifest()
   first = True
-  for (name, project) in man.projects.iteritems():
-    if not first: print
+  for (name, project) in man.projects.items():
+    if not first: print()
     first = False
 
-    print "Project %s:" % name
+    print("Project %s:" % name)
     project_status(project, indent=2)
     check_dirty_repo(project.git_repo,
                      indent=2)
 
   man_repo = get_manifest_repo()
   if man_repo:
-    print
-    print "Manifest repo:"
+    print()
+    print("Manifest repo:")
     repo_status(man_repo,
                 man_repo.current_branch(),
                 "origin/" + man_repo.current_branch(),
@@ -346,28 +345,28 @@ def dump_refs(args):
   """
   man = load_manifest()
   first = True
-  for (name, project) in man.projects.iteritems():
-    if not first: print
+  for (name, project) in man.projects.items():
+    if not first: print()
     first = False
-    print "Project %s:" % name
+    print("Project %s:" % name)
 
     repo = project.git_repo
-    print "  HEAD: %s" % repo.rev_parse("HEAD")
-    print "  Symbolic: %s" % repo.current_branch()
+    print("  HEAD: %s" % repo.rev_parse("HEAD"))
+    print("  Symbolic: %s" % repo.current_branch())
     project_status(project, indent=2)
 
   repo = get_manifest_repo()
   if repo:
     try:
       repo_branch = repo.current_branch()
-    except Exception, ex:
+    except Exception as ex:
       trace.Trace("Failed to get current branch for %s: %s" % (repo, ex))
       return
 
-    print
-    print "Manifest repo:"
-    print "  HEAD: %s" % repo.rev_parse("HEAD")
-    print "  Symbolic: %s" % repo_branch
+    print()
+    print("Manifest repo:")
+    print("  HEAD: %s" % repo.rev_parse("HEAD"))
+    print("  Symbolic: %s" % repo_branch)
     repo_status(repo,
                 repo_branch,
                 "origin/" + repo_branch,
@@ -392,7 +391,7 @@ def update_indirect(args):
   possible_actions = False # were there any where we could take action?
 
   # Come up with the list of indirect projects we might want to twiddle
-  for project in man.projects.itervalues():
+  for project in man.projects.values():
     if not isinstance(project.tracker, manifest.TrackIndirect):
       continue
     saw_indirects = True
@@ -405,9 +404,9 @@ def update_indirect(args):
       continue
 
     possible_actions = True
-    print "Project %s:" % project.name
-    print "  Indirect file: %s" % tracker.indirection_file
-    print
+    print("Project %s:" % project.name)
+    print("  Indirect file: %s" % tracker.indirection_file)
+    print()
     project_status(project, indent=2)
 
     cur_revision = repo.rev_parse("HEAD")
@@ -415,26 +414,26 @@ def update_indirect(args):
     # We are strictly ahead of where we should be
     if left > 0 and right == 0:
       if not force:
-        print
-        print "Do you want to update this project to the currently checked out revision?"
-        print " (revision %s)" % cur_revision
-        print " (Y/n): ",
+        print()
+        print("Do you want to update this project to the currently checked out revision?")
+        print(" (revision %s)" % cur_revision)
+        print(" (Y/n): ", end=' ')
         sys.stdout.flush()
         res = sys.stdin.readline().rstrip().lower()
         if res != 'y' and res != '':
           continue
 
-      f = file(tracker.indirection_file, "w")
+      f = open(tracker.indirection_file, "w")
       try:
-         print >>f, cur_revision
+         print(cur_revision, file=f)
       finally:
         f.close()
-      print "Updated"
+      print("Updated")
 
   if not saw_indirects:
-    print "No indirect projects!"
+    print("No indirect projects!")
   elif not possible_actions:
-    print "All indirect projects are up to date!"
+    print("All indirect projects are up to date!")
 
 COMMANDS = {
   'help': help,
@@ -453,12 +452,12 @@ COMMANDS = {
   }
 
 def usage():
-  print >>sys.stderr, "%s -m <manifest> COMMAND" % sys.argv[0]
-  print >>sys.stderr
+  print("%s -m <manifest> COMMAND" % sys.argv[0], file=sys.stderr)
+  print(file=sys.stderr)
 
   max_comlen = 0
   out = []
-  for (command, function) in COMMANDS.iteritems():
+  for (command, function) in COMMANDS.items():
     docs = function.__doc__ or "no docs"
     docs = docs.split("\n")[0]
     if len(command) > max_comlen:
@@ -477,7 +476,7 @@ def usage():
         cur_line = " " * (max_comlen + 5)
       cur_line += " " + word
     if cur_line: output_docs.append(cur_line)
-    print >>sys.stderr, "  %s   %s" % (command, "\n".join(output_docs))
+    print("  %s   %s" % (command, "\n".join(output_docs)), file=sys.stderr)
   sys.exit(1)
 
 def main():
