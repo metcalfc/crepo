@@ -15,7 +15,7 @@
 
 import os
 import subprocess
-from trace import REPO_TRACE, IsTrace, Trace
+import sys
 
 GIT = 'git'
 MIN_GIT_VERSION = (1, 5, 4)
@@ -24,6 +24,25 @@ GIT_DIR = 'GIT_DIR'
 
 LAST_GITDIR = None
 LAST_CWD = None
+
+REPO_TRACE = 'REPO_TRACE'
+
+try:
+  _TRACE = os.environ[REPO_TRACE] == '1'
+except KeyError:
+  _TRACE = False
+
+def IsTrace():
+  return _TRACE
+
+def SetTrace():
+  global _TRACE
+  _TRACE = True
+
+def Trace(fmt, *args):
+  if IsTrace():
+    print(fmt % args, file=sys.stderr)
+
 
 class GitCommand(object):
   def __init__(self,
