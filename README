@@ -9,7 +9,7 @@ Step 1: Make a container directory and initial manifest:
 
 todd@todd-laptop:/tmp$ mkdir my-crepo-project
 todd@todd-laptop:/tmp$ cd my-crepo-project/
-todd@todd-laptop:/tmp/my-crepo-project$ 
+todd@todd-laptop:/tmp/my-crepo-project$
 
 Put the following content in a new file called manifest.json using your favorite text editor:
 
@@ -27,7 +27,7 @@ While this command runs, let's look at the manifest section by section:
 
 The "remotes" section describes places we'll look to find git repositories. Every remote must have a %(name)s in it to describe where to substitute the project name, for now. In this case we've defined that the origin is apache's mirror on github.
 
-Next we define the projects we want to track. For both of these projects, we define that we want to track the "trunk" reference from the remote repository. If we didn't specify this, it would try to track "master" which doesn't exist in the Apache mirrors.
+Next we define the projects we want to track. For both of these projects, we define that we want to track the "trunk" reference from the remote repository. If we didn't specify this, it would try to track "main" which doesn't exist in the Apache mirrors.
 
 Step 2: Investigate what you've got
 
@@ -63,7 +63,7 @@ Step 4: Make some local changes
 
 Let's say that you'd like to make a local change to Hadoop. We'll do something silly rather than make a real change.
 
-todd@todd-laptop:/tmp/my-crepo-project/hadoop$ echo 'MADE AWESOMER' >> CHANGES.txt 
+todd@todd-laptop:/tmp/my-crepo-project/hadoop$ echo 'MADE AWESOMER' >> CHANGES.txt
 
 Before you commit the change, cd back to my-crepo-project and run "crepo status" again, or just "crepo check-dirty". It will alert you that you have a local change in the hadoop project. Now you can go ahead and commit the change:
 
