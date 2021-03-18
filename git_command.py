@@ -102,7 +102,8 @@ class GitCommand(object):
                            cwd = cwd,
                            env = env,
                            stdout = stdout,
-                           stderr = stderr)
+                           stderr = stderr,
+                           encoding='utf8')
     except Exception as e:
       raise Exception('%s: %s' % (command[1], e))
 

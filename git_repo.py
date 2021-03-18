@@ -30,7 +30,7 @@ class GitRepo(object):
       raise Exception("Command %s returned non-zero exit code: %d" %
                       (repr(cmdv), rc))
     if capture_stdout:
-      return str(p.stdout)
+      return p.stdout
 
   def command_process(self, cmdv, **kwargs):
     p = GitCommand(cwd=self.path,
