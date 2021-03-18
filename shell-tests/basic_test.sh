@@ -91,7 +91,7 @@ git commit -a -m '4'
 ## Update crepo by hard reset
 popd
 $CREPO fetch
-$CREPO status | grep -A1 'repo_a' | grep '1 revisions ahead'
+$CREPO status | grep -A4 'repo_a' | grep '1 revisions ahead'
 $CREPO hard-reset
 test $($CREPO status | grep 'up to date' | wc -l) -eq 2
 
@@ -122,19 +122,19 @@ $CREPO check-dirty
 
 # Commit something locally and do a crepo sync
 
-$CREPO status | grep -A1 'repo_a' | grep -v '1 revisions ahead'
+$CREPO status | grep -A4 'repo_a' | grep -v '1 revisions ahead'
 pushd repo_a
   echo 'Local commit' >> file_a
   git commit -a -m 'local'
 popd
-$CREPO status | grep -A1 'repo_a' | grep '1 revisions ahead of remote'
+$CREPO status | grep -A4 'repo_a' | grep '1 revisions ahead of remote'
 
 # Sync shouldn't do anything
 $CREPO sync && exit 1
-$CREPO status | grep -A1 'repo_a' | grep '1 revisions ahead of remote'
+$CREPO status | grep -A4 'repo_a' | grep '1 revisions ahead of remote'
 
 ## sync -f shouldn't blow away local changes
 $CREPO sync -f && exit 1
-$CREPO status | grep -A1 'repo_a' | grep '1 revisions ahead of remote'
+$CREPO status | grep -A4 'repo_a' | grep '1 revisions ahead of remote'
 
 echo ALL GOOD
