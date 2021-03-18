@@ -1,11 +1,11 @@
 {
   "default-remote": "origin",
-  "default-revision": "master",
-  
+  "default-revision": "main",
+
   "remotes":
     {"origin": { "fetch": "ssh://git@git.sf.cloudera.com/%(name)s.git" },
      "apache": { "fetch": "ssh://git@git.sf.cloudera.com/apache-%(name)s.git" }},
- 
+
   "projects":
     {"hadoop": {},
    "pig": {"refspec": "0.3.0",

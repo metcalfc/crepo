@@ -60,11 +60,11 @@ pushd tests
 cat > manifest.json <<EOF
 {
   "default-remote": "origin",
-  "default-revision": "master",
-  
+  "default-revision": "main",
+
   "remotes":
     {"origin": { "fetch": "$TESTDIR/%(name)s" }},
- 
+
   "projects":
     {"repo_a": {},
      "repo_b": {}}
@@ -76,7 +76,7 @@ $CREPO sync
 ## Check that the checkouts are correct
 for repo in repo_a repo_b ; do
   pushd $repo
-  test $(git symbolic-ref HEAD) == "refs/heads/master"
+  test $(git symbolic-ref HEAD) == "refs/heads/main"
   test $(git remote) == "origin"
   test -f file_a
   popd
@@ -138,4 +138,3 @@ $CREPO sync -f && exit 1
 $CREPO status | grep -A1 'repo_a' | grep '1 revisions ahead of remote'
 
 echo ALL GOOD
-

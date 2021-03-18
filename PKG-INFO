@@ -1,16 +1,14 @@
 Metadata-Version: 1.1
 Name: crepo
-Version: 0.1
+Version: 0.2
 Author: Todd Lipcon
 Author-email: todd at cloudera com
 Maintainer: Chad Metcalf
-Maintainer-email: chad at cloudera com
-Home-page: http://github.com/cloudera/crepo/tree/master
+Maintainer-email: metcalfc at gmail com
+Home-page: http://github.com/metcalfc/crepo/tree/main
 Summary: cloudera repo management tool
 Description: crepo is a lightweight git repository management tool similar to Google's "repo" tool. crepo makes it very easy to manage projects that pull together sources from multiple remote repositories. In this respect, it is similar to submodules.  However, it avoids the direct integration with the git index which makes the use of submodules somewhat error prone, and also enables automatic tracking of remote references without explicit commits to the containing repository.
 Classifier: Development Status :: 4 - Beta
 Classifier: Environment :: Console
 Classifier: Intended Audience :: Developers
 Classifier: License :: OSI Approved :: Apache Software License
-
-

@@ -19,7 +19,7 @@ class Manifest(object):
                base_dir=None,
                remotes=[],
                projects={},
-               default_ref="master",
+               default_ref="main",
                default_remote="origin"):
     self.base_dir = base_dir or os.getcwd()
     self.remotes = remotes
@@ -36,7 +36,7 @@ class Manifest(object):
 
     man = Manifest(
       base_dir=base_dir,
-      default_ref=data.get("default-revision", "master"),
+      default_ref=data.get("default-revision", "main"),
       default_remote=default_remote,
       remotes=remotes)
 
@@ -255,7 +255,7 @@ class Project(object):
                      "for project %s" % name)
         track_branch = ref
       else:
-        track_branch = "master"
+        track_branch = "main"
 
     if track_tag:
       tracker = TrackTag(track_tag)
@@ -314,13 +314,13 @@ class Project(object):
 
     repo = self.git_repo
     if repo.command(["show-ref", "-q", "HEAD"]) != 0:
-      # There is no HEAD (maybe origin/master doesnt exist) so check out the tracking
+      # There is no HEAD (maybe origin/main doesnt exist) so check out the tracking
       # branch
       self.tracker.create_tracking_branch(repo)
       repo.check_command(["checkout", self.tracker.tracking_branch])
     else:
       repo.check_command(["checkout"])
-    
+
 
   def ensure_remotes(self):
     repo = self.git_repo
