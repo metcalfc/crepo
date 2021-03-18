@@ -1,2 +1,5 @@
 *.pyc
 *~
+build/
+crepo.egg-info/
+dist/
