@@ -21,6 +21,7 @@ jobs:
         python-version: '3.x'
     - name: Install dependencies
       run: |
+        git config --global init.defaultBranch main
         python -m pip install --upgrade pip
         pip install setuptools wheel
     - name: Test
